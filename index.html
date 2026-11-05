@@ -99,11 +99,15 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
 .news a,.news .it{display:block;padding:12px 0;border-top:1px solid var(--line);text-decoration:none;color:inherit}
 .news > :first-child{border-top:none}
 .news b{display:block;font-weight:600}
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.tile{background:var(--surf);border-radius:18px;padding:16px;text-align:left;display:flex;flex-direction:column;gap:10px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tile{background:var(--surf);border-radius:18px;padding:14px 12px;text-align:left;display:flex;flex-direction:column;gap:8px;min-width:0}
+.tile .tophead{display:flex;align-items:center;justify-content:space-between;gap:4px}
 .tile .ic{width:44px;height:44px;border-radius:22px;display:grid;place-items:center}
 .tile .ic svg{width:22px;height:22px}
-.tile b{font-size:16px;display:flex;align-items:center;gap:6px}
+.tile b{font-size:15px}
+.tile .muted{font-size:12px;line-height:1.45;word-break:keep-all}
+.tile .ic{flex:none}
+.tile .pill{white-space:nowrap;font-size:11px;padding:2px 8px}
 /* 퀴즈 */
 #v-quiz,#v-ai{--main:#2F3E8F;--main-soft:#E8EBF7;--main-deep:#24316F}
 .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
@@ -206,6 +210,28 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
 .chan .tel{display:flex;align-items:center;gap:8px;margin-top:4px}
 .chan .tel a{flex:1;font-weight:700;color:var(--main);text-decoration:none;font-size:16px}
 .chan .tel button{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600}
+.post{background:var(--bg);border:1.5px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px;text-align:left;width:100%}
+.post h3{font-size:16px;font-weight:700;line-height:1.4}
+.post p{color:var(--sub);font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.post .meta{display:flex;gap:12px;align-items:center;font-size:12px;color:var(--mute)}
+.post .meta span{display:flex;align-items:center;gap:4px}
+.post .meta svg{width:14px;height:14px}
+.writefab{position:fixed;bottom:100px;right:max(16px,calc(50% - 199px));z-index:21;background:var(--main);color:#fff;border-radius:999px;height:50px;padding:0 20px;display:flex;align-items:center;gap:6px;font-weight:700;box-shadow:0 4px 12px rgba(15,123,108,.35)}
+.writefab svg{width:20px;height:20px}
+.pbody{white-space:pre-wrap;line-height:1.7;font-size:15px}
+.acts2{display:flex;gap:8px}
+.acts2 button{display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;background:var(--bg)}
+.acts2 button svg{width:16px;height:16px}
+.acts2 button[aria-pressed=true]{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.cmt{padding:12px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.cmt .who{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+.cmt .who .del{margin-left:auto;font-size:12px;color:var(--mute);font-weight:500}
+.cmt p{font-size:14px;white-space:pre-wrap}
+.cbar{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:10px 16px 14px;display:flex;gap:8px;align-items:flex-end}
+.cbar textarea{flex:1;min-height:44px;max-height:120px;resize:none;padding:11px 14px}
+.cbar button{height:44px;padding:0 16px;border-radius:12px;background:var(--main);color:#fff;font-weight:700;flex:none}
+.rules{background:var(--amber-soft);border-radius:12px;padding:12px 14px;font-size:13px;color:#6B4A00;line-height:1.6}
+.row .t span.pill{display:inline-block;width:auto}
 .adminrow{background:var(--surf);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .adminrow .acts{display:flex;gap:8px}
 .adminrow .acts button{flex:1;height:40px;border-radius:10px;font-weight:600;font-size:14px}
@@ -256,21 +282,30 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
     <div class="sec">
       <div class="sec-head"><h2>빠른 실행</h2></div>
       <div class="tiles">
-        <a class="tile" href="#alert" style="text-decoration:none;color:inherit">
-          <span class="ic" style="background:var(--safe-soft);color:var(--safe)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
-          <b>위치 알림 <span class="pill" id="alert-pill"></span></b>
-          <span class="muted">제보 많은 곳 근처에서 알려줘요</span>
+        <a class="tile" href="#alert">
+          <span class="tophead"><span class="ic" style="background:var(--safe-soft);color:var(--safe)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="pill" id="alert-pill"></span></span>
+          <b>위치 알림</b>
+          <span class="muted">위험 지역 근처에서 알려줘요</span>
         </a>
-        <a class="tile" href="#call" style="text-decoration:none;color:inherit">
-          <span class="ic" style="background:var(--red-soft);color:var(--red)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span>
+        <a class="tile" href="#call">
+          <span class="tophead"><span class="ic" style="background:var(--red-soft);color:var(--red)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span></span>
           <b>가짜 전화</b>
-          <span class="muted">몇 초 뒤 전화가 온 것처럼 울려요</span>
+          <span class="muted">전화 온 척 자리 벗어나기</span>
+        </a>
+        <a class="tile" href="#quiz">
+          <span class="tophead"><span class="ic" style="background:#E8EBF7;color:#2F3E8F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17h.01"/></svg></span></span>
+          <b>퀴즈</b>
+          <span class="muted">포교 패턴 대처법 익히기</span>
         </a>
       </div>
     </div>
     <div class="sec">
       <div class="sec-head"><h2>최근 제보</h2><a class="link" href="#map">지도에서 보기</a></div>
       <div id="recent" class="sec" style="gap:8px"><div class="empty">제보를 불러오는 중이에요</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-head"><h2>커뮤니티 최근 글</h2><a class="link" href="#community">전체 보기</a></div>
+      <div id="home-posts" class="sec" style="gap:8px"></div>
     </div>
   </div>
 </section>
@@ -468,16 +503,47 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
       <div class="sec" id="news-admin-list" style="gap:8px"></div>
     </div>
     <div class="sec"><div class="sec-head"><h2>게시된 제보</h2></div><div class="sec" id="approved-admin" style="gap:8px"></div></div>
+    <div class="sec"><div class="sec-head"><h2>신고된 글 <span class="pill red" id="flag-count">0</span></h2></div><div class="sec" id="flag-list" style="gap:8px"></div></div>
   </div>
 </section>
 
 <div class="backdrop" id="backdrop" aria-hidden="true"></div>
+<!-- 커뮤니티 -->
+<section class="view has-tab" id="v-community" aria-label="커뮤니티">
+  <header class="top"><h1 style="padding-left:12px">커뮤니티</h1></header>
+  <div class="body" style="gap:12px">
+    <div class="chips" data-group="pcat"></div>
+    <div class="sec" id="post-list" style="gap:10px"></div>
+  </div>
+  <a class="writefab" href="#write" id="write-fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>글쓰기</a>
+</section>
+
+<!-- 글쓰기 -->
+<section class="view" id="v-write" aria-label="글쓰기">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>글쓰기</h1></header>
+  <form class="body" id="write-form" style="gap:18px" novalidate>
+    <div class="field"><span class="lab">카테고리</span><div class="chips" data-group="wcat"></div></div>
+    <div class="field"><label for="w-title">제목</label><input class="input" id="w-title" maxlength="60" placeholder="궁동에서 설문조사 핑계로 붙잡혔어요"></div>
+    <div class="field"><label for="w-body">내용</label><textarea class="input" id="w-body" maxlength="2000" style="min-height:200px" placeholder="어떤 상황이었는지, 어떻게 대처했는지 나눠주세요"></textarea></div>
+    <span class="hint" id="w-err" style="color:var(--red)"></span>
+    <div class="rules">글은 익명으로 올라가요. 사람·단체의 실명, 연락처, 얼굴이 나온 사진 정보는 적지 마세요. 비방이나 허위 내용은 관리자가 삭제할 수 있어요.</div>
+    <button class="btn main" type="submit" id="w-submit">올리기</button>
+  </form>
+</section>
+
+<!-- 글 보기 -->
+<section class="view" id="v-post" aria-label="게시글">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>커뮤니티</h1></header>
+  <div class="body" id="post-body" style="gap:14px"></div>
+  <form class="cbar" id="cmt-form" novalidate><textarea class="input" id="cmt-input" maxlength="500" rows="1" placeholder="댓글을 남겨주세요" aria-label="댓글"></textarea><button type="submit">등록</button></form>
+</section>
+
 <!-- 하단 탭 -->
 <nav class="tabbar" id="tabbar" aria-label="주요 메뉴">
   <a href="#main" data-tab="main"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/></svg>홈</a>
   <a href="#map" data-tab="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>지도</a>
   <a href="#report" class="fab" data-tab="report"><span class="c"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>제보</a>
-  <a href="#quiz" data-tab="quiz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17h.01"/></svg>퀴즈</a>
+  <a href="#community" data-tab="community"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4h12a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-7l-5 4v-4a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/><path d="M8 10.5h.01M12 10.5h.01M16 10.5h.01" stroke-linecap="round" stroke-width="2.6"/></svg>커뮤니티</a>
   <a href="#ai" data-tab="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg>AI 판별</a>
 </nav>
 </div>
@@ -597,7 +663,7 @@ function chips(group,items,selected,onChange){
 const picked=g=>{const b=document.querySelector(`[data-group="${g}"] .chip[aria-pressed=true]`);return b?+b.dataset.i:0;};
 
 /* ===================== 저장소 (공유 DB, 없으면 이 기기) ===================== */
-const store={db:null,user:null,isAdmin:false,uid:null,pending:[],approved:[],news:[],ready:false};
+const store={db:null,user:null,isAdmin:false,uid:null,canWrite:true,pending:[],approved:[],news:[],posts:[],comments:[],likes:[],flags:[],ready:false};
 function localCol(name){return ls.get('col.'+name,[]);}
 function localSave(name,arr){ls.set('col.'+name,arr);}
 async function addReport(data){
@@ -619,6 +685,12 @@ async function removeDoc(col,id){
   if(store.db){await store.db.collection(col).doc(id).delete();}
   else{localSave(col,localCol(col).filter(x=>x.id!==id));refreshLocal();}
 }
+async function putDoc(col,id,data){
+  if(store.offline){const e=new Error('offline');e.code='signed_out';throw e;}
+  if(store.db){await store.db.collection(col).doc(id).set(data);}
+  else{const a=localCol(col).filter(x=>x.id!==id);a.push({id,...data});localSave(col,a);refreshLocal();}
+}
+const newId=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 async function addNews(n){
   if(store.db){await store.db.collection('news').add({...n,createdAt:Date.now()});}
   else{localSave('news',[...localCol('news'),{id:'n'+Date.now(),...n,createdAt:Date.now()}]);refreshLocal();}
@@ -627,6 +699,7 @@ function refreshLocal(){
   store.pending=localCol('reports').sort((a,b)=>b.createdAt-a.createdAt);
   store.approved=localCol('approved').sort((a,b)=>b.createdAt-a.createdAt);
   store.news=localCol('news').sort((a,b)=>b.createdAt-a.createdAt);
+  for(const k of ['posts','comments','likes','flags'])store[k]=localCol(k).sort((a,b)=>b.createdAt-a.createdAt);
   store.ready=true;renderAll();
 }
 function subscribe(col,key,order){
@@ -636,16 +709,33 @@ function subscribe(col,key,order){
     store[key]=snap.docs.map(d=>({id:d.id,...d.data()}));store.ready=true;renderAll();
   },err=>{clearTimeout(timer);store['_'+key]='err';renderAll();});
 }
+const SAMPLE_POSTS=[
+  {id:'sp1',cat:0,title:'궁동에서 설문조사 핑계로 붙잡혔어요',body:'욧골공원 앞에서 설문 하나만 해달라고 해서 해줬는데, 끝나고 나니까 결과를 설명해주겠다며 카페에 가자고 했어요.\n"시간 없어요" 하고 그냥 왔는데 비슷한 경험 있으신 분?',authorId:'s2',ago:3*3600000},
+  {id:'sp2',cat:1,title:'친구가 무료 인문학 모임에 가자는데 괜찮을까요?',body:'동아리 친구가 무료로 인문학 공부하는 모임이 있다고 같이 가자고 해요. 어떤 단체인지 물어보니까 대답을 잘 안 해줘서 좀 찜찜해요.',authorId:'s3',ago:9*3600000},
+  {id:'sp3',cat:2,title:'학교 등록 동아리인지 확인하는 방법',body:'학생처 홈페이지 동아리 목록에서 이름으로 검색하면 정식 등록 동아리인지 확인할 수 있어요. 목록에 없는데 동아리라고 소개하면 한 번 의심해 보세요.',authorId:'s4',ago:48*3600000}];
+const SAMPLE_COMMENTS=[
+  {id:'sc1',postId:'sp1',text:'저도 같은 곳에서 똑같이 당했어요. 그냥 지나가는 게 답인 듯',authorId:'s5',ago:2*3600000},
+  {id:'sc2',postId:'sp1',text:'댓글 감사해요. 다들 조심하세요!',authorId:'s2',ago:1*3600000},
+  {id:'sc3',postId:'sp2',text:'단체 이름을 안 알려주면 안 가는 게 좋아요',authorId:'s5',ago:8*3600000}];
+const SAMPLE_LIKES=[['sp1','s3'],['sp1','s4'],['sp1','s5'],['sp2','s4'],['sp3','s2'],['sp3','s5']].map(([postId,uid])=>({id:postId+'_'+uid,postId,uid}));
 async function initStore(){
   let db=null,user=null;
   try{[db,user]=await Promise.all([window.claude?claude.use('db'):null,window.claude?claude.use('user'):null]);}catch(e){}
   store.user=user;
   try{store.isAdmin=user?!!(await user.canEdit()):false;}catch(e){store.isAdmin=false;}
+  try{store.uid=user?await user.id():null;}catch(e){store.uid=null;}
+  try{const c=user?await user.can('data.write'):null;store.canWrite=c!==false;}catch(e){}
   if(db){store.db=db;subscribe('approved','approved','createdAt');subscribe('news','news','createdAt');
-    if(store.isAdmin)subscribe('reports','pending','createdAt');
+    subscribe('posts','posts','createdAt');subscribe('comments','comments','createdAt');subscribe('likes','likes','createdAt');
+    if(store.isAdmin){subscribe('reports','pending','createdAt');subscribe('flags','flags','createdAt');}
   }else if(window.claude){store.isAdmin=false;store.offline=true;store.ready=true;}
   else{ // Claude 밖(GitHub Pages 등): 이 기기에만 저장하는 데모 모드. 관리자 화면은 ?admin=1 로 열기
     store.local=true;store.isAdmin=/[?&]admin=1/.test(location.search);
+    store.uid=ls.get('uid',null)||(()=>{const u='me'+Math.random().toString(36).slice(2,10);ls.set('uid',u);return u;})();
+    if(!ls.get('seededPosts',false)){const now=Date.now();
+      localSave('posts',[...localCol('posts'),...SAMPLE_POSTS.map(({ago,...x})=>({...x,sample:true,createdAt:now-ago}))]);
+      localSave('comments',[...localCol('comments'),...SAMPLE_COMMENTS.map(({ago,...x})=>({...x,createdAt:now-ago}))]);
+      localSave('likes',[...localCol('likes'),...SAMPLE_LIKES.map(x=>({...x,createdAt:now}))]);ls.set('seededPosts',true);}
     if(!ls.get('seeded',false)){const now=Date.now();
       localSave('approved',[...localCol('approved'),...SAMPLE_REPORTS.map(({ago,...r})=>({...r,sample:true,createdAt:now-ago}))]);
       localSave('news',[...localCol('news'),...SAMPLE_NEWS.map(({ago,...n})=>({...n,createdAt:now-ago}))]);ls.set('seeded',true);}
@@ -660,6 +750,7 @@ function route(){
   let h=(location.hash||'#main').slice(1);
   let view=h,arg=null;
   if(h.startsWith('article-')){view='article';arg=h.slice(8);}
+  if(h.startsWith('post-')){view='post';arg=h.slice(5);}
   const el=$('#v-'+view)||$('#v-main');
   if(!$('#v-'+view)){view='main';}
   const under=view==='menu'?(prevView&&prevView!=='menu'?prevView:'main'):null;
@@ -668,12 +759,14 @@ function route(){
   el.classList.add('on',view==='menu'?'slide-left':'fade');
   $('#backdrop').classList.toggle('on',view==='menu');$('#backdrop').classList.remove('closing');
   const tabView=under||view;
-  $('#tabbar').style.display=['main','map','quiz','ai'].includes(tabView)?'grid':'none';
+  $('#tabbar').style.display=['main','map','quiz','ai','community'].includes(tabView)?'grid':'none';
   document.querySelectorAll('#tabbar a').forEach(a=>{a.dataset.tab===tabView?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current');});
   if(view==='menu'){prevView=under;window.__menuOpen=true;return;}
   window.__menuOpen=false;
   if(view==='quiz'&&prevView!=='quiz')startQuiz();
   if(view==='article')renderArticle(arg);
+  if(view==='post'){curPost=arg;renderPost();}
+  if(view==='write'&&!store.canWrite){toast('글쓰기는 초대받은 팀원만 할 수 있어요');}
   if(view==='my')renderMy();
   if(view==='pick')openPicker();
   if(view==='report')renderLocBox();
@@ -693,7 +786,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.__menuOpen&&!$('#call').classList.contains('on'))closeMenu();});
 
 /* ===================== 렌더 ===================== */
-function renderAll(){renderNews();renderRecent();renderMap();renderAdmin();renderMenu();if($('#v-my').classList.contains('on'))renderMy();renderAlertPill();}
+function renderAll(){renderFlags&&renderFlags();renderNews();renderRecent();renderCommunity();renderHomePosts();if($('#v-post').classList.contains('on'))renderPost();renderMap();renderAdmin();renderMenu();if($('#v-my').classList.contains('on'))renderMy();renderAlertPill();}
 function renderNews(){
   const el=$('#news-list');
   if(!store.ready){el.innerHTML='<div class="empty">소식을 불러오는 중이에요</div>';return;}
@@ -784,8 +877,8 @@ $('#map-all').onclick=()=>{if(mapFilter||$('#map-q').value){mapFilter=null;$('#m
 $('#loc-btn').onclick=()=>locate(p=>{showAll=false;drawMe();if(lmap)lmap.setView(p,16);renderMap();toast('현재 위치를 찾았어요');});
 
 function renderMenu(){
-  const items=[['#quiz','포교 패턴 퀴즈','상황별 퀴즈로 대처법 익히기'],['#info','기타 정보','자문 채널과 추가 정보'],['#alert','위치 알림 설정','제보 많은 곳 근처에서 알림 받기'],['#my','내 제보 내역','내가 올린 제보와 처리 상태']];
-  if(store.isAdmin)items.push(['#admin','관리자','제보 승인과 소식 등록']);
+  const items=[['#quiz','포교 패턴 퀴즈','상황별 퀴즈로 대처법 익히기'],['#info','기타 정보','자문 채널과 추가 정보'],['#alert','위치 알림 설정','제보 많은 곳 근처에서 알림 받기'],['#my','내 제보 내역','내가 올린 제보와 처리 상태'],['#community','커뮤니티','경험을 나누고 질문하기']];
+  if(store.isAdmin)items.push(['#admin','관리자','제보 승인, 소식 등록, 신고 처리']);
   $('#menu-list').innerHTML=items.map(([h,t,d])=>`<a class="row" href="${h}" style="text-decoration:none;color:inherit"><span class="dot"></span><span class="t"><b>${t}</b><span>${d}</span></span>${ICON.chev}</a>`).join('');
 }
 function renderMy(){
@@ -1135,6 +1228,93 @@ function renderChannels(i=0){
 chips('region',REGIONS,0,renderChannels);renderChannels(0);
 $('#channel-list').addEventListener('click',async e=>{const b=e.target.closest('[data-copy]');if(!b)return;
   try{await navigator.clipboard.writeText(b.dataset.copy);toast('전화번호를 복사했어요');}catch(err){toast(b.dataset.copy+' — 직접 눌러서 복사해 주세요');}});
+
+
+/* ===================== 커뮤니티 ===================== */
+const PCATS=['경험 공유','질문','정보'];
+const PCAT_PILL=['red','main','safe'];
+let curPost=null,pcatFilter=0;
+const ICON2={heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+ cmt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 11.5a7.5 7.5 0 0 1-10.9 6.7L5 19.5l1.2-4.3A7.5 7.5 0 1 1 21 11.5z"/></svg>',
+ flag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 21V4h12l-2 4 2 4H5"/></svg>'};
+const likeCount=id=>store.likes.filter(l=>l.postId===id).length;
+const cmtCount=id=>store.comments.filter(c=>c.postId===id).length;
+const safeUid=()=>String(store.uid||'').replace(/[^A-Za-z0-9_\-.~:@+]/g,'').slice(0,80);
+const iLiked=id=>!!store.uid&&store.likes.some(l=>l.postId===id&&l.uid===store.uid);
+function postCard(p){return `<a class="post" href="#post-${esc(p.id)}"><span><span class="pill ${PCAT_PILL[p.cat]||'main'}">${esc(PCATS[p.cat]||'기타')}</span></span>
+  <h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>
+  <div class="meta"><span>익명 · ${ago(p.createdAt)}</span><span>${ICON2.heart}${likeCount(p.id)}</span><span>${ICON2.cmt}${cmtCount(p.id)}</span></div></a>`;}
+function renderCommunity(){
+  const el=$('#post-list');if(!el)return;
+  $('#write-fab').style.display=store.offline?'none':'flex';
+  if(store.offline){el.innerHTML='<div class="empty">Claude에 로그인하면 커뮤니티 글을 볼 수 있어요</div>';return;}
+  if(!store.ready||(!store._posts&&store.db)){el.innerHTML='<div class="empty">글을 불러오는 중이에요</div>';return;}
+  if(store._posts==='err'){el.innerHTML='<div class="empty">글을 불러오지 못했어요. 잠시 뒤 다시 열어주세요.</div>';return;}
+  const list=store.posts.filter(p=>pcatFilter===0||p.cat===pcatFilter-1);
+  el.innerHTML=list.length?list.map(postCard).join(''):'<div class="empty">아직 글이 없어요.<br>포교를 겪은 경험이나 궁금한 점을 나눠주세요.</div>';
+}
+function renderHomePosts(){
+  const el=$('#home-posts');if(!el)return;
+  if(store.offline){el.innerHTML='<div class="empty">Claude에 로그인하면 커뮤니티 글을 볼 수 있어요</div>';return;}
+  el.innerHTML=store.posts.length?store.posts.slice(0,2).map(postCard).join(''):'<div class="empty">아직 글이 없어요</div>';
+}
+function renderPost(){
+  const el=$('#post-body');const p=store.posts.find(x=>x.id===curPost);
+  if(!p){el.innerHTML=store.ready&&(store._posts||!store.db)?'<div class="empty">삭제됐거나 찾을 수 없는 글이에요</div>':'<div class="empty">글을 불러오는 중이에요</div>';$('#cmt-form').style.display='none';return;}
+  $('#cmt-form').style.display=store.offline?'none':'flex';
+  const mine=store.uid&&p.authorId===store.uid,canDel=mine||store.isAdmin;
+  const cs=store.comments.filter(c=>c.postId===p.id).sort((a,b)=>a.createdAt-b.createdAt);
+  const nums={};let n=0;cs.forEach(c=>{if(c.authorId!==p.authorId&&!(c.authorId in nums))nums[c.authorId]=++n;});
+  el.innerHTML=`<span><span class="pill ${PCAT_PILL[p.cat]||'main'}">${esc(PCATS[p.cat]||'기타')}</span></span>
+   <h2 style="font-size:20px;line-height:1.4">${esc(p.title)}</h2><span class="hint">익명 · ${ago(p.createdAt)}</span>
+   <div class="pbody">${esc(p.body)}</div>
+   <div class="acts2"><button type="button" id="like-btn" aria-pressed="${iLiked(p.id)}">${ICON2.heart}공감 ${likeCount(p.id)}</button>
+     ${mine?'':`<button type="button" id="flag-btn">${ICON2.flag}신고</button>`}${canDel?'<button type="button" id="pdel-btn">삭제</button>':''}</div>
+   <div class="sec" style="gap:0;margin-top:8px"><b style="padding-bottom:8px">댓글 ${cs.length}</b>
+   ${cs.length?cs.map(c=>{const isAuthor=c.authorId===p.authorId,cDel=(store.uid&&c.authorId===store.uid)||store.isAdmin;
+     return `<div class="cmt"><div class="who">${isAuthor?'<span class="pill main">글쓴이</span>':'익명'+nums[c.authorId]}<span class="hint" style="font-weight:400">${ago(c.createdAt)}</span>${cDel?`<button type="button" class="del" data-cdel="${esc(c.id)}">삭제</button>`:''}</div><p>${esc(c.text)}</p></div>`;}).join(''):'<div class="empty" style="border-top:1px solid var(--line)">첫 댓글을 남겨주세요</div>'}</div>`;
+}
+function writeErr(e){toast(e&&e.code==='signed_out'?'Claude에 로그인해야 쓸 수 있어요':e&&e.code==='invalid_argument'?'이 계정은 글을 쓸 권한이 없어요. 관리자에게 편집 권한을 요청하세요':'저장하지 못했어요. 잠시 뒤 다시 시도해 주세요');}
+chips('pcat',['전체',...PCATS],0,i=>{pcatFilter=i;renderCommunity();});
+chips('wcat',PCATS,0);
+['#w-title','#w-body'].forEach(x=>$(x).addEventListener('input',()=>$('#w-err').textContent=''));
+$('#write-form').addEventListener('submit',async e=>{
+  e.preventDefault();const t=$('#w-title').value.trim(),b=$('#w-body').value.trim();
+  if(t.length<2){$('#w-err').textContent='제목을 2자 이상 적어주세요';$('#w-title').focus();return;}
+  if(b.length<5){$('#w-err').textContent='내용을 5자 이상 적어주세요';$('#w-body').focus();return;}
+  if(!store.uid&&store.db){toast('로그인 정보를 확인하지 못했어요. 새로고침 후 다시 시도해 주세요');return;}
+  const btn=$('#w-submit');btn.disabled=true;btn.textContent='올리는 중…';
+  const id=newId('p');
+  try{await putDoc('posts',id,{cat:picked('wcat'),title:t,body:b,authorId:store.uid,createdAt:Date.now()});
+    $('#w-title').value='';$('#w-body').value='';window.__replace=true;location.replace('#post-'+id);toast('글을 올렸어요');}
+  catch(err){writeErr(err);}finally{btn.disabled=false;btn.textContent='올리기';}
+});
+$('#post-body').addEventListener('click',async e=>{
+  const p=store.posts.find(x=>x.id===curPost);if(!p)return;
+  const b=e.target.closest('button');if(!b)return;
+  try{
+    if(b.id==='like-btn'){const lid=p.id+'_'+safeUid();b.disabled=true;
+      if(iLiked(p.id))await removeDoc('likes',lid);else await putDoc('likes',lid,{postId:p.id,uid:store.uid,createdAt:Date.now()});}
+    else if(b.id==='flag-btn'){b.disabled=true;await putDoc('flags',newId('f'),{postId:p.id,title:p.title,createdAt:Date.now()});toast('신고했어요. 관리자가 확인할게요');}
+    else if(b.id==='pdel-btn'){if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='한 번 더 누르면 삭제돼요';return;}
+      b.disabled=true;await removeDoc('posts',p.id);for(const c of store.comments.filter(c=>c.postId===p.id))await removeDoc('comments',c.id);toast('글을 삭제했어요');history.back();}
+    else if(b.dataset.cdel){b.disabled=true;await removeDoc('comments',b.dataset.cdel);toast('댓글을 삭제했어요');}
+  }catch(err){b.disabled=false;writeErr(err);}
+});
+$('#cmt-form').addEventListener('submit',async e=>{
+  e.preventDefault();const t=$('#cmt-input').value.trim();if(!t){$('#cmt-input').focus();return;}
+  const btn=$('#cmt-form button');btn.disabled=true;
+  try{await putDoc('comments',newId('c'),{postId:curPost,text:t,authorId:store.uid,createdAt:Date.now()});$('#cmt-input').value='';}
+  catch(err){writeErr(err);}finally{btn.disabled=false;}
+});
+function renderFlags(){
+  if(!store.isAdmin||!$('#flag-list'))return;
+  const live=store.flags.filter(f=>store.posts.some(p=>p.id===f.postId));
+  $('#flag-count').textContent=live.length;
+  $('#flag-list').innerHTML=live.length?live.map(f=>`<div class="adminrow"><b>${esc(f.title||'')}</b><span class="hint">${ago(f.createdAt)} 신고</span>
+   <div class="acts"><a href="#post-${esc(f.postId)}" style="flex:1;height:40px;border-radius:10px;font-weight:600;font-size:14px;border:1.5px solid var(--line);display:grid;place-items:center">글 보기</a><button style="background:var(--bg);border:1.5px solid var(--line)" data-dismiss="${esc(f.id)}">신고 무시</button></div></div>`).join(''):'<div class="empty">신고된 글이 없어요</div>';
+}
+$('#flag-list').addEventListener('click',async e=>{const b=e.target.closest('[data-dismiss]');if(!b)return;b.disabled=true;try{await removeDoc('flags',b.dataset.dismiss);}catch(err){b.disabled=false;toast('처리하지 못했어요');}});
 
 /* ===================== 글 ===================== */
 function renderArticle(k){const a=ARTICLES[k];if(!a){location.hash='#info';return;}$('#article-title').textContent=a.t;$('#article-body').innerHTML=a.h;}
