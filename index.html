@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사이비켜</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="js/judge.js"></script>
+<style>
+:root{
+  --main:#0F7B6C; --main-soft:#E3F2EF; --main-deep:#0A5A4F;
+  --amber:#E8A317; --amber-soft:#FFF4DB;
+  --safe:#0F7B6C; --safe-soft:#E3F2EF;
+  --red:#D2463C; --red-soft:#FCEBE9;
+  --ink:#17233D; --sub:#5C6780; --mute:#98A2B3;
+  --surf:#F3F6F5; --line:#DCE3E1; --bg:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'IBM Plex Sans KR',system-ui,sans-serif;color:var(--ink);background:#E4E8EF;font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.phone{max-width:430px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;display:flex;flex-direction:column}
+.view{display:none;flex:1;flex-direction:column;min-height:100vh}
+.view.on{display:flex}
+.view.slide-left{animation:fromLeft .3s ease-out}
+.view.fade{animation:fade .2s ease-out}
+@keyframes fromLeft{from{transform:translateX(-100%)}to{transform:none}}
+@keyframes toLeft{from{transform:none}to{transform:translateX(-100%)}}
+#v-menu.on{position:fixed;top:0;bottom:0;left:max(0px,calc(50% - 215px));width:min(330px,84vw);min-height:0;z-index:40;background:var(--bg);box-shadow:4px 0 24px rgba(0,0,0,.18);overflow:auto}
+#v-menu.closing{animation:toLeft .22s ease-in forwards}
+.backdrop{position:fixed;inset:0;background:rgba(23,35,61,.42);z-index:35;display:none;animation:fade .25s ease-out}
+.backdrop.on{display:block}
+.backdrop.closing{animation:fade .22s ease-in reverse forwards}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.top{height:60px;display:flex;align-items:center;padding:0 8px;gap:4px;position:sticky;top:0;background:var(--bg);z-index:5}
+.top h1{flex:1;font-size:18px;font-weight:700}
+.top .logo{flex:1;text-align:center;font-size:20px;font-weight:700;color:var(--main)}
+.ibtn{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;color:var(--ink)}
+a{color:inherit;text-decoration:none}
+.ibtn svg{width:24px;height:24px}
+.body{flex:1;padding:12px 20px 24px;display:flex;flex-direction:column;gap:16px}
+.has-tab .body{padding-bottom:104px}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec-head{display:flex;align-items:center;justify-content:space-between}
+.sec-head h2{font-size:17px;font-weight:700}
+.link{color:var(--main);font-size:13px;font-weight:500}
+.card{background:var(--surf);border-radius:16px;padding:18px}
+.muted{color:var(--sub);font-size:13px}
+.hint{color:var(--mute);font-size:12px}
+/* 탭바 */
+.tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:84px;background:var(--bg);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 0 16px;z-index:20}
+.tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--mute);font-size:11px;text-decoration:none}
+.tabbar a svg{width:24px;height:24px}
+.tabbar a[aria-current=page]{color:var(--main);font-weight:600}
+.tabbar .fab span.c{width:48px;height:48px;border-radius:24px;background:var(--main);display:grid;place-items:center;box-shadow:0 4px 10px rgba(15,123,108,.3)}
+.tabbar .fab{color:var(--main);font-weight:600}
+/* 공통 부품 */
+.btn{height:54px;border-radius:14px;font-weight:700;font-size:16px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.main{background:var(--main);color:#fff}
+.btn.amber{background:var(--amber);color:var(--ink)}
+.btn.ghost{background:var(--bg);border:1.5px solid var(--line)}
+.btn.danger{background:var(--bg);border:1.5px solid var(--red);color:var(--red)}
+.btn:disabled{opacity:.55;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 16px;font-weight:500;font-size:14px}
+.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.amber-scope .chip[aria-pressed=true]{background:var(--amber);border-color:var(--amber);color:var(--ink)}
+.field{display:flex;flex-direction:column;gap:8px}
+.field label,.field .lab{font-size:14px;font-weight:600}
+.input{background:var(--surf);border:1.5px solid transparent;border-radius:12px;padding:13px 16px;width:100%;font-size:15px}
+.input:focus{border-color:var(--main);outline:none;background:var(--bg)}
+textarea.input{resize:vertical;min-height:96px;line-height:1.5}
+.row{display:flex;align-items:center;gap:14px;background:var(--surf);border-radius:14px;padding:14px 16px;width:100%;text-align:left}
+.row .dot{width:40px;height:40px;border-radius:20px;background:var(--main-soft);flex:none;display:grid;place-items:center;color:var(--main)}
+.row .dot.red{background:var(--red-soft);color:var(--red)}
+.row .dot svg{width:20px;height:20px}
+.row .t{flex:1;min-width:0}
+.row .t b{display:block;font-size:15px;font-weight:600}
+.row .t span{display:block;font-size:13px;color:var(--sub)}
+.row .chev{color:var(--mute);width:20px;height:20px;flex:none}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600}
+.pill.safe{background:var(--safe-soft);color:var(--safe)}
+.pill.amber{background:var(--amber-soft);color:#8A5B00}
+.pill.red{background:var(--red-soft);color:var(--red)}
+.pill.main{background:var(--main-soft);color:var(--main)}
+.empty{text-align:center;color:var(--sub);font-size:14px;padding:18px 8px}
+.note{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--sub)}
+.note svg{width:16px;height:16px;flex:none}
+.toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:100;max-width:90%;text-align:center}
+.toast.on{opacity:1}
+/* 메인 */
+.news{background:var(--surf);border-radius:16px;padding:4px 18px}
+.news a,.news .it{display:block;padding:12px 0;border-top:1px solid var(--line);text-decoration:none;color:inherit}
+.news > :first-child{border-top:none}
+.news b{display:block;font-weight:600}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{background:var(--surf);border-radius:18px;padding:16px;text-align:left;display:flex;flex-direction:column;gap:10px}
+.tile .ic{width:44px;height:44px;border-radius:22px;display:grid;place-items:center}
+.tile .ic svg{width:22px;height:22px}
+.tile b{font-size:16px;display:flex;align-items:center;gap:6px}
+/* 퀴즈 */
+#v-quiz,#v-ai{--main:#2F3E8F;--main-soft:#E8EBF7;--main-deep:#24316F}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--main);transition:width .3s}
+.qcard{background:var(--main);color:#fff;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.qcard .pill{background:var(--main-deep);color:#C9D1F5;align-self:flex-start}
+.qcard p{font-size:16px;font-weight:600;line-height:1.55}
+.opt{display:flex;gap:12px;align-items:center;border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;text-align:left;width:100%;background:var(--bg)}
+.opt .n{font-weight:700;color:var(--sub)}
+.opt.right{border-color:var(--main);background:var(--main-soft)}
+.opt.right .n{color:var(--main)}
+.opt.wrong{border-color:var(--red);background:var(--red-soft)}
+.opt.wrong .n{color:var(--red)}
+.explain{background:var(--surf);border-radius:16px;padding:16px 18px}
+.explain b{color:var(--main)}
+/* AI */
+.meter{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.meter span{border-radius:10px;padding:8px;text-align:center;font-weight:700;background:var(--surf);color:var(--mute)}
+.meter span.on.상{background:var(--red);color:#fff}
+.meter span.on.중{background:var(--amber);color:var(--ink)}
+.meter span.on.하{background:var(--safe);color:#fff}
+.result{border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.result ul{padding-left:18px;color:var(--sub);font-size:14px}
+.spin{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp 0.8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* 지도 */
+.mapwrap{position:relative;flex:1;min-height:360px;background:#E7EEEC;overflow:hidden}
+.mapwrap svg.map{position:absolute;inset:0;width:100%;height:100%}
+.search{position:absolute;left:16px;right:16px;top:16px;background:var(--bg);border-radius:14px;height:50px;display:flex;align-items:center;gap:10px;padding:0 16px;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+.search input{border:none;outline:none;flex:1;font-size:15px;background:none}
+.locbtn{position:absolute;right:16px;bottom:16px;width:48px;height:48px;border-radius:24px;background:var(--bg);display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.sheet{background:var(--bg);border-radius:22px 22px 0 0;margin-top:-20px;position:relative;padding:10px 20px 104px;box-shadow:0 -4px 16px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:12px;max-height:46vh;overflow:auto}
+.handle{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto}
+.pin{cursor:pointer}
+/* 위치 선택 (카카오T 방식) */
+.pickmap{position:relative;flex:1;overflow:hidden;background:#E7EEEC;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.pickmap.dragging{cursor:grabbing}
+.pickmap > svg#pick-svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pickmap .floatbtn svg{position:static}
+.cpin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);pointer-events:none;transition:transform .15s ease-out;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+.dragging .cpin{transform:translate(-50%,calc(-100% - 14px))}
+.cshadow{position:absolute;left:50%;top:50%;width:14px;height:6px;border-radius:50%;background:rgba(0,0,0,.25);transform:translate(-50%,-50%);pointer-events:none;transition:width .15s}
+.dragging .cshadow{width:8px}
+.pick-top{position:absolute;top:12px;left:12px;right:12px;display:flex;align-items:center;gap:8px;pointer-events:none}
+.pick-top > *{pointer-events:auto}
+.floatbtn{width:44px;height:44px;border-radius:22px;background:var(--bg);display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.hintpill{background:var(--ink);color:#fff;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:500;margin:0 auto}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;background:var(--bg);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.12);overflow:hidden}
+.zoom button{width:44px;height:44px;font-size:22px;font-weight:500}
+.zoom button+button{border-top:1px solid var(--line)}
+.pick-card{background:var(--bg);border-radius:22px 22px 0 0;margin-top:-20px;position:relative;padding:20px 20px 28px;box-shadow:0 -4px 16px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:14px}
+.locprev{position:relative;height:150px;border-radius:16px;overflow:hidden;background:#E7EEEC;border:1.5px solid var(--line)}
+.locprev > svg.mapimg{position:absolute;inset:0;width:100%;height:100%}
+.locprev .cpin{transform:translate(-50%,-100%) scale(.8);transform-origin:bottom center}
+.locprev.empty-loc{display:grid;place-items:center;color:var(--sub);font-size:14px;cursor:pointer}
+.locline{display:flex;align-items:center;gap:10px}
+.locline .t{flex:1}
+.locline b{display:block;font-size:15px}
+/* 가짜 전화 */
+.call{position:fixed;inset:0;z-index:60;background:linear-gradient(180deg,#2C3757,#121827);color:#fff;display:none;flex-direction:column;align-items:center;padding:14px 28px 60px}
+.call.on{display:flex}
+.call .status{width:100%;max-width:400px;display:flex;justify-content:space-between;font-weight:600;padding:0 8px}
+.call .who{margin-top:90px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.call .av{width:112px;height:112px;border-radius:56px;background:#3A4566;display:grid;place-items:center;font-size:44px}
+.ringing .av{animation:pulse 1.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.35)}100%{box-shadow:0 0 0 28px rgba(255,255,255,0)}}
+.call .name{font-size:34px;font-weight:500}
+.call .sub2{color:#AEB6C8}
+.call .grow{flex:1}
+.call .small,.call .big{width:100%;max-width:340px;display:flex;justify-content:space-between}
+.call .small{margin-bottom:36px}
+.call .small button{color:#fff;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;width:84px}
+.call .big > div{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:14px}
+.cbtn{width:76px;height:76px;border-radius:38px;display:grid;place-items:center}
+.cbtn svg{width:34px;height:34px}
+.script{background:rgba(255,255,255,.08);border-radius:16px;padding:16px 18px;max-width:320px;margin-top:30px;display:none}
+.script p{margin-bottom:6px}
+.countdown{background:var(--amber-soft);border-radius:14px;padding:14px 16px;display:none;align-items:center;justify-content:space-between}
+.countdown.on{display:flex}
+.countdown b{font-size:22px}
+/* 제보 완료 */
+.steps{display:flex;align-items:center;background:var(--surf);border-radius:16px;padding:18px 14px}
+.steps .s{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:600}
+.steps .s i{width:28px;height:28px;border-radius:14px;display:grid;place-items:center;font-style:normal;font-weight:700;font-size:13px}
+.steps .ln{flex:1;height:2px;background:var(--line);margin:0 6px 18px}
+.switch{width:52px;height:32px;border-radius:16px;background:var(--line);position:relative;flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;width:26px;height:26px;border-radius:13px;background:#fff;top:3px;left:3px;transition:left .2s}
+.switch[aria-checked=true]{background:var(--amber)}
+.switch[aria-checked=true]::after{left:23px}
+.notif{background:var(--bg);border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:4px}
+.appic{width:24px;height:24px;border-radius:6px;background:var(--main);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+.banner{position:fixed;top:10px;left:50%;transform:translate(-50%,-140%);width:calc(100% - 24px);max-width:400px;z-index:90;transition:transform .35s}
+.banner.on{transform:translate(-50%,0)}
+.article p{margin-bottom:12px;line-height:1.7}
+.article h3{font-size:16px;margin:18px 0 8px}
+.article ul{padding-left:20px;margin-bottom:12px;line-height:1.7}
+.chan{background:var(--surf);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.chan .top2{display:flex;align-items:center;gap:8px}
+.chan .top2 b{flex:1;font-size:15px}
+.chan .tel{display:flex;align-items:center;gap:8px;margin-top:4px}
+.chan .tel a{flex:1;font-weight:700;color:var(--main);text-decoration:none;font-size:16px}
+.chan .tel button{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600}
+.adminrow{background:var(--surf);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.adminrow .acts{display:flex;gap:8px}
+.adminrow .acts button{flex:1;height:40px;border-radius:10px;font-weight:600;font-size:14px}
+/* 실제 지도 (Leaflet) */
+.lmap{position:absolute;inset:0;z-index:0;background:#E7EEEC}
+.has-leaflet #map-svg,.has-leaflet #pick-svg,.has-leaflet .zoom{display:none}
+.search,.locbtn,.pick-top,.cpin,.cshadow,.mapbadge{z-index:500}
+.leaflet-container{font:inherit}
+.cnt{width:34px;height:34px;border-radius:17px;background:var(--red);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.cnt.sel{background:var(--main-deep)}
+.cnt.sample{background:#E07A70}
+.me{width:18px;height:18px;border-radius:9px;background:#2F6FED;border:3px solid #fff;box-shadow:0 0 0 6px rgba(47,111,237,.2)}
+.mapbadge{position:absolute;left:16px;top:76px;background:var(--bg);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.1);display:none}
+.mapbadge.on{display:block}
+.locprev .lmap{pointer-events:none}
+.dist{font-size:12px;color:var(--main);font-weight:600;flex:none}
+/* AI 체크리스트·근거 */
+.checks{display:flex;flex-direction:column;gap:10px}
+.check{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.check span{font-size:14px;flex:1}
+.yn{display:flex;gap:6px;flex:none}
+.yn .chip{padding:6px 12px;font-size:13px}
+.sig{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.sig div{display:flex;gap:8px;align-items:flex-start}
+.sig i{font-style:normal;flex:none;width:18px;text-align:center;font-weight:700}
+.sig .r i{color:var(--red)}.sig .s i{color:var(--safe)}
+.ev{color:var(--mute);font-size:12px}
+.meter span.on.판단{background:var(--ink);color:#fff}
+.followq{background:var(--amber-soft);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="phone" id="app">
+
+<!-- 메인 -->
+<section class="view has-tab" id="v-main" aria-label="메인">
+  <header class="top">
+    <a class="ibtn" href="#menu" aria-label="메뉴"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></a>
+    <div class="logo">사이비켜</div>
+    <a class="ibtn" href="#my" aria-label="내 제보 내역"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></a>
+  </header>
+  <div class="body" style="gap:24px">
+    <div class="sec">
+      <div class="sec-head"><h2>사이비 관련 소식</h2><span id="news-admin"></span></div>
+<div class="news" id="news-list"><div class="empty">소식을 불러오는 중이에요</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-head"><h2>빠른 실행</h2></div>
+      <div class="tiles">
+        <a class="tile" href="#alert" style="text-decoration:none;color:inherit">
+          <span class="ic" style="background:var(--safe-soft);color:var(--safe)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+          <b>위치 알림 <span class="pill" id="alert-pill"></span></b>
+          <span class="muted">제보 많은 곳 근처에서 알려줘요</span>
+        </a>
+        <a class="tile" href="#call" style="text-decoration:none;color:inherit">
+          <span class="ic" style="background:var(--red-soft);color:var(--red)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span>
+          <b>가짜 전화</b>
+          <span class="muted">몇 초 뒤 전화가 온 것처럼 울려요</span>
+        </a>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-head"><h2>최근 제보</h2><a class="link" href="#map">지도에서 보기</a></div>
+      <div id="recent" class="sec" style="gap:8px"><div class="empty">제보를 불러오는 중이에요</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 메뉴 -->
+<section class="view" id="v-menu" aria-label="메뉴">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>메뉴</h1></header>
+  <div class="body" style="gap:10px" id="menu-list"></div>
+</section>
+
+<!-- 퀴즈 -->
+<section class="view has-tab" id="v-quiz" aria-label="포교 패턴 퀴즈">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>포교 패턴 퀴즈</h1></header>
+  <div class="body" id="quiz-body" style="gap:14px"></div>
+</section>
+
+<!-- AI 판별 -->
+<section class="view has-tab" id="v-ai" aria-label="포교 의심도 판별">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>포교 의심도 판별</h1></header>
+  <div class="body" style="gap:14px">
+    <div class="field">
+      <label for="ai-input">상황 입력</label>
+      <textarea class="input" id="ai-input" rows="4" maxlength="600" placeholder="학교 앞에서 인터뷰를 부탁하더니 연락처를 달라고 했어요"></textarea>
+      <span class="hint" id="ai-err" style="color:var(--red)"></span>
+    </div>
+    <div class="card checks" id="ai-checks">
+      <b style="font-size:15px">확인 질문 <span class="hint" style="font-weight:400">아는 것만 골라도 돼요</span></b>
+    </div>
+    <button class="btn main" id="ai-btn">분석하기</button>
+    <div id="ai-result"></div>
+    <div class="sec" id="ai-similar"></div>
+    <p class="hint">분석 결과는 참고용이며 특정 종교나 단체를 판단하지 않아요. 위협을 느끼면 112에 신고하세요.</p>
+  </div>
+</section>
+
+<!-- 가짜 전화 -->
+<section class="view amber-scope" id="v-call" aria-label="가짜 전화">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>가짜 전화</h1></header>
+  <div class="body" style="gap:22px">
+    <div class="field"><span class="lab">누구한테 올까요?</span><div class="chips" data-group="caller"></div>
+      <input class="input" id="custom-caller" maxlength="12" placeholder="직접 입력 (예: 조장 민지)" style="display:none"></div>
+    <div class="field"><span class="lab">언제 울릴까요?</span><div class="chips" data-group="delay"></div></div>
+    <div class="field"><span class="lab">어떻게 울릴까요?</span><div class="chips" data-group="mode"></div></div>
+    <div style="flex:1"></div>
+    <div class="countdown" id="countdown" role="status"><span><b id="cd-num">10</b> 초 뒤에 울려요</span><button class="chip" id="cd-cancel">취소</button></div>
+    <div class="sec">
+      <button class="btn amber" id="call-start">가짜 전화 예약하기</button>
+      <div class="note" style="justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>예약한 시간이 되면 실제 전화처럼 울려요</div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--line)">
+    <div class="sec"><p class="muted" style="text-align:center">지금 바로 자리를 벗어나야 한다면</p><button class="btn danger" id="call-now">긴급 전화 (바로 울리기)</button></div>
+  </div>
+</section>
+
+<!-- 제보하기 -->
+<section class="view" id="v-report" aria-label="제보하기">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>제보하기</h1></header>
+  <form class="body" id="report-form" style="gap:18px" novalidate>
+    <div class="field"><span class="lab">위치</span>
+      <div id="loc-box"></div>
+      <span class="hint" id="loc-err" style="color:var(--red)"></span>
+    </div>
+    <div class="field"><label for="r-spot">장소 설명</label><input class="input" id="r-spot" maxlength="40" placeholder="편의점 앞, 버스 정류장 근처"><span class="hint" id="r-err" style="color:var(--red)"></span></div>
+    <div class="field"><span class="lab">접근 수법</span><div class="chips" data-group="method"></div></div>
+    <div class="field"><span class="lab">시간대</span><div class="chips" data-group="time"></div></div>
+    <div class="field"><label for="r-memo">상황 / 기타</label><textarea class="input" id="r-memo" maxlength="300" placeholder="어떤 말로 접근했는지 적어주세요. 사람·단체 이름은 적지 마세요."></textarea></div>
+    <div class="note" style="color:var(--main)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>관리자가 확인한 뒤 지도에 게시돼요</div>
+    <button class="btn main" type="submit" id="r-submit">제보 등록</button>
+  </form>
+</section>
+
+<!-- 위치 선택 -->
+<section class="view" id="v-pick" aria-label="제보 위치 선택" style="height:100vh">
+  <div class="pickmap" id="pickmap">
+    <div class="lmap" id="lpick"></div>
+    <svg id="pick-svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+    <div class="cshadow"></div>
+    <svg class="cpin" width="40" height="52" viewBox="0 0 40 52" aria-hidden="true"><path d="M20 51s17-17.5 17-30A17 17 0 0 0 3 21c0 12.5 17 30 17 30z" fill="#0F7B6C"/><circle cx="20" cy="20" r="7" fill="#fff"/></svg>
+    <div class="pick-top">
+      <button class="floatbtn back" aria-label="뒤로"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="hintpill">지도를 움직여 핀을 맞춰주세요</span>
+      <span style="width:44px"></span>
+    </div>
+    <div class="zoom"><button id="zoom-in" aria-label="확대">+</button><button id="zoom-out" aria-label="축소">−</button></div>
+  </div>
+  <div class="pick-card">
+    <div class="locline"><span class="row" style="padding:0;background:none;width:auto"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span></span>
+      <div class="t"><span class="hint">선택한 위치</span><b id="pick-label">충남대 정문 근처</b><span class="muted" id="pick-sub"></span></div></div>
+    <button class="btn ghost" id="pick-me" type="button">내 현재 위치로 맞추기</button>
+    <button class="btn main" id="pick-ok">이 위치로 정하기</button>
+  </div>
+</section>
+
+<!-- 제보 완료 -->
+<section class="view" id="v-done" aria-label="제보 완료">
+  <div class="body" style="align-items:center;text-align:center;padding-top:120px;gap:12px">
+    <div style="width:96px;height:96px;border-radius:48px;background:var(--safe-soft);display:grid;place-items:center;color:var(--safe)"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></div>
+    <h2 style="font-size:24px;margin-top:8px">제보가 접수됐어요</h2>
+    <p class="muted" style="font-size:14px">관리자가 내용을 확인한 뒤 지도에 게시돼요.<br>처리 상태는 '내 제보 내역'에서 볼 수 있어요.</p>
+    <div class="steps" style="width:100%;margin-top:16px">
+      <div class="s"><i style="background:var(--safe);color:#fff">✓</i>접수</div><div class="ln"></div>
+      <div class="s"><i style="background:var(--amber);color:var(--ink)">2</i>관리자 확인</div><div class="ln"></div>
+      <div class="s" style="color:var(--mute)"><i style="background:var(--line);color:var(--mute)">3</i>지도에 게시</div>
+    </div>
+    <div style="flex:1"></div>
+    <a class="btn main" href="#my" style="text-decoration:none">내 제보 내역 보기</a>
+    <a class="btn ghost" href="#main" style="text-decoration:none;color:inherit">홈으로</a>
+  </div>
+</section>
+
+<!-- 지도 -->
+<section class="view" id="v-map" aria-label="지도">
+  <div class="mapwrap">
+    <div class="lmap" id="lmap" aria-label="포교 제보 지도"></div>
+    <div class="mapbadge" id="map-badge"></div>
+    <svg class="map" id="map-svg" viewBox="0 0 400 520" preserveAspectRatio="xMidYMid slice" role="img" aria-label="충남대 주변 제보 지도"></svg>
+    <div class="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg><input id="map-q" placeholder="장소나 수법으로 검색하세요" aria-label="제보 검색"></div>
+    <button class="locbtn" id="loc-btn" aria-label="현재 위치"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+  </div>
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="sec-head"><h2 id="map-title">주변 포교 제보</h2><button class="link" id="map-all" style="display:none">전체 보기</button></div>
+    <div id="map-list" class="sec" style="gap:8px"></div>
+  </div>
+</section>
+
+<!-- 기타 정보 -->
+<section class="view" id="v-info" aria-label="기타 정보">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>기타 정보</h1></header>
+  <div class="body" style="gap:12px">
+    <div class="sec"><div class="sec-head"><h2>자문 채널</h2></div><p class="muted">혼자 고민하지 말고 도움을 받을 수 있는 곳에 이야기해 보세요</p>
+      <div class="row"><span class="dot red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span><span class="t"><b>경찰 112</b><span>따라오거나 위협을 느낄 때 바로 신고</span></span></div>
+      <div class="row"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></span><span class="t"><b>학교 학생상담센터</b><span>소속 학교 상담센터에 고민 상담</span></span></div>
+      <div class="row"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg></span><span class="t"><b>현대종교</b><span>이단 정보 확인과 자문 · 유튜브 채널, 월간 현대종교 발간</span></span></div>
+    </div>
+    <div class="sec" style="margin-top:12px"><div class="sec-head"><h2>지역별 이단 상담소</h2></div>
+      <p class="muted">이단 문제로 상담이 필요할 때 지역 상담소에 연락해 보세요</p>
+      <div class="chips" data-group="region"></div>
+      <div class="sec" id="channel-list" style="gap:8px"></div>
+    </div>
+    <div class="sec" style="margin-top:12px"><div class="sec-head"><h2>추가 정보</h2></div>
+      <a class="row" href="#article-tactics" style="text-decoration:none;color:inherit"><span class="dot"></span><span class="t"><b>포교 수법 총정리</b><span>자주 쓰이는 접근 방법 8가지</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
+      <a class="row" href="#article-contact" style="text-decoration:none;color:inherit"><span class="dot"></span><span class="t"><b>이미 연락처를 줬다면</b><span>차단하고 대처하는 방법</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
+      <a class="row" href="#article-family" style="text-decoration:none;color:inherit"><span class="dot"></span><span class="t"><b>가족·친구가 빠졌다면</b><span>대화할 때 주의할 점</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<!-- 글 보기 -->
+<section class="view" id="v-article" aria-label="정보 글">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1 id="article-title"></h1></header>
+  <div class="body article" id="article-body"></div>
+</section>
+
+<!-- 위치 알림 -->
+<section class="view amber-scope" id="v-alert" aria-label="위치 알림">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>위치 알림</h1></header>
+  <div class="body" style="gap:22px">
+    <div class="card" style="display:flex;align-items:center;gap:12px">
+      <div style="flex:1"><b style="font-size:16px">위치 알림 받기</b><p class="muted">제보가 많은 곳 근처에 가면 알려줘요</p></div>
+      <button class="switch" id="alert-switch" role="switch" aria-checked="false" aria-label="위치 알림 받기"></button>
+    </div>
+    <div class="field"><span class="lab">알림 범위</span><div class="chips" data-group="radius"></div></div>
+    <div class="field"><span class="lab">알림 받을 시간</span><div class="chips" data-group="when"></div></div>
+    <div class="sec"><span class="lab" style="font-weight:600">이런 알림이 와요</span>
+      <div class="card" style="background:#DDE6E4;padding:16px">
+        <div class="notif"><div style="display:flex;align-items:center;gap:8px"><span class="appic">사</span><b style="flex:1;font-size:13px">사이비켜</b><span class="hint">지금</span></div>
+        <b id="notif-text">근처 300m 안에 포교 제보가 3건 있어요</b><span class="muted">설문·심리테스트 요청을 조심하세요.</span></div>
+      </div>
+      <button class="btn ghost" id="notif-test">알림 미리보기 받기</button>
+    </div>
+    <p class="hint" style="text-align:center">웹 버전에서는 위치 권한이 있을 때 이 페이지를 열어 둔 동안만 알림을 받을 수 있어요</p>
+  </div>
+</section>
+
+<!-- 내 제보 내역 -->
+<section class="view" id="v-my" aria-label="내 제보 내역">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>내 제보 내역</h1></header>
+  <div class="body" style="gap:8px" id="my-list"></div>
+</section>
+
+<!-- 관리자 -->
+<section class="view" id="v-admin" aria-label="관리자">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>관리자</h1></header>
+  <div class="body" style="gap:20px">
+    <div class="sec"><div class="sec-head"><h2>승인 대기 제보 <span class="pill amber" id="pending-count">0</span></h2></div><div class="sec" id="pending-list" style="gap:8px"></div></div>
+    <div class="sec"><div class="sec-head"><h2>소식 등록</h2></div>
+      <form id="news-form" class="sec" novalidate>
+        <input class="input" id="n-title" maxlength="80" placeholder="기사 제목">
+        <input class="input" id="n-source" maxlength="30" placeholder="언론사 이름">
+        <input class="input" id="n-url" maxlength="400" placeholder="https://기사 주소">
+        <span class="hint" id="n-err" style="color:var(--red)"></span>
+        <button class="btn main" type="submit">소식 등록</button>
+      </form>
+      <div class="sec" id="news-admin-list" style="gap:8px"></div>
+    </div>
+    <div class="sec"><div class="sec-head"><h2>게시된 제보</h2></div><div class="sec" id="approved-admin" style="gap:8px"></div></div>
+  </div>
+</section>
+
+<div class="backdrop" id="backdrop" aria-hidden="true"></div>
+<!-- 하단 탭 -->
+<nav class="tabbar" id="tabbar" aria-label="주요 메뉴">
+  <a href="#main" data-tab="main"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/></svg>홈</a>
+  <a href="#map" data-tab="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>지도</a>
+  <a href="#report" class="fab" data-tab="report"><span class="c"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>제보</a>
+  <a href="#quiz" data-tab="quiz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17h.01"/></svg>퀴즈</a>
+  <a href="#ai" data-tab="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg>AI 판별</a>
+</nav>
+</div>
+
+<!-- 전화 수신 -->
+<div class="call" id="call" role="dialog" aria-label="수신 전화">
+  <div class="status"><span id="clock">9:41</span><span>●●● ▮</span></div>
+  <div class="who"><div class="av" id="call-av">👩</div><div class="name" id="call-name">엄마</div><div class="sub2" id="call-sub">휴대전화</div></div>
+  <div class="script" id="call-script"><p class="hint" style="color:#AEB6C8">이렇게 말하면서 자리를 떠나세요</p><p id="line1"></p><p>"아 지금? 알겠어, 바로 갈게!"</p></div>
+  <div class="grow"></div>
+  <div class="small" id="call-small">
+    <button id="call-later"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M5 4L3 6M19 4l2 2"/></svg>나중에 알림</button>
+    <button id="call-msg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>메시지</button>
+  </div>
+  <div class="big">
+    <div><button class="cbtn" id="call-decline" style="background:#E5484D" aria-label="거절"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M3 14.5c5-4.5 13-4.5 18 0l-2.2 2.8-3.3-1.2v-2.6a11 11 0 0 0-7 0v2.6l-3.3 1.2z"/></svg></button><span id="decline-lab">거절</span></div>
+    <div id="accept-wrap"><button class="cbtn" id="call-accept" style="background:#30A46C" aria-label="받기"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></button>받기</div>
+  </div>
+</div>
+
+<div class="banner" id="banner"><div class="notif"><div style="display:flex;align-items:center;gap:8px"><span class="appic">사</span><b style="flex:1;font-size:13px">사이비켜</b><span class="hint">지금</span></div><b id="banner-text"></b><span class="muted" id="banner-sub"></span></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ===================== 데이터 ===================== */
+const AREAS=[
+  // x,y: 예전 그림 지도 좌표 / lat,lng: 실제 지도 좌표(대략적인 위치)
+  {id:'gate',name:'충남대 정문',x:200,y:250,lat:36.3634,lng:127.3458},
+  {id:'gung',name:'궁동',x:300,y:190,lat:36.3622,lng:127.3512},
+  {id:'eoeun',name:'어은동',x:110,y:150,lat:36.3657,lng:127.3586},
+  {id:'yuseong',name:'유성온천역',x:110,y:400,lat:36.3537,lng:127.3415},
+  {id:'bongmyeong',name:'봉명동',x:290,y:400,lat:36.3555,lng:127.3475},
+  {id:'etc',name:'기타',x:350,y:300,lat:36.3600,lng:127.3550}
+];
+const METHODS=['설문조사','심리테스트','길 묻기','칭찬·운세','공부 모임','동아리·봉사','인터뷰·촬영','기타'];
+const TIMES=['오전','오후','저녁','밤'];
+const CALLERS=[{n:'엄마',e:'👩'},{n:'아빠',e:'👨'},{n:'친구',e:'🧑'},{n:'+ 직접 입력',e:''}];
+const DELAYS=[5,10,30];
+const MODES=['벨소리','진동','벨소리 + 진동'];
+
+const QUIZ=[
+  {q:"길을 걷는데 낯선 사람이 다가와 '심리테스트 5분만 해주실 수 있나요?'라고 해요. 어떻게 할까요?",
+   o:['재미있을 것 같으니 해본다',"'괜찮아요' 하고 멈추지 않고 지나간다",'연락처만 알려주고 나중에 하겠다고 한다'],a:1,
+   e:'심리테스트는 고민을 털어놓게 한 뒤 모임으로 데려가는 흔한 수법이에요. 이유를 설명하지 말고 짧게 거절하세요.'},
+  {q:"'인상이 정말 좋으시네요. 조상님 덕이 있어 보여요'라며 말을 걸어요. 가장 좋은 대응은?",
+   o:["'감사합니다' 하고 대화를 이어가지 않는다",'무슨 뜻인지 자세히 물어본다','조상님 이야기를 듣고 판단한다'],a:0,
+   e:'칭찬으로 경계를 풀고 조상·기운 이야기로 넘어가는 패턴이에요. 대화를 이어가지 않는 게 핵심이에요.'},
+  {q:"동아리 홍보라며 '무료 인문학 공부 모임'에 오라고 해요. 먼저 확인할 것은?",
+   o:['모임 장소가 가까운지','운영 단체가 어디인지, 학교에 등록된 동아리인지','몇 명이 참여하는지'],a:1,
+   e:'처음에는 단체를 밝히지 않는 경우가 많아요. 운영 단체를 물었을 때 대답을 피하면 가지 않는 게 좋아요.'},
+  {q:"졸업 작품 인터뷰를 도와줬더니 '결과물을 보여주고 싶다'며 연락처를 달라고 해요.",
+   o:['결과가 궁금하니 연락처를 준다','SNS 계정만 알려준다','연락처는 주지 않고 거절한다'],a:2,
+   e:'인터뷰·설문 뒤 결과 공유를 핑계로 재만남을 잡는 수법이에요. 연락처나 SNS는 주지 마세요.'},
+  {q:'이미 몇 번 만난 모임에서 "다른 사람에게는 아직 말하지 마"라고 해요. 이건 어떤 신호일까요?',
+   o:['친해졌다는 뜻이다','고립시키려는 위험 신호다','모임 규칙일 뿐이다'],a:1,
+   e:'가족·친구에게 비밀로 하라는 요구는 대표적인 위험 신호예요. 믿을 만한 사람에게 바로 이야기하세요.'},
+  {q:'거절했는데도 계속 따라오며 말을 걸어요. 어떻게 할까요?',
+   o:['예의상 끝까지 들어준다','사람이 많은 가게로 들어가고, 위협을 느끼면 112에 신고한다','조용한 골목으로 피한다'],a:1,
+   e:'사람이 많은 곳으로 이동하는 게 안전해요. 가짜 전화 기능을 쓰거나, 위협을 느끼면 112에 신고하세요.'}
+];
+
+const ARTICLES={
+  tactics:{t:'포교 수법 총정리',h:`<p>길거리 포교는 대부분 비슷한 말로 시작해요. 아래 표현을 들으면 대화를 짧게 끝내세요.</p>
+<h3>자주 쓰이는 접근 방법</h3><ul>
+<li><b>설문조사</b> — "설문 하나만 해주세요." 끝나면 결과 설명을 핑계로 다시 만나자고 해요.</li>
+<li><b>심리테스트·성격검사</b> — 고민을 털어놓게 한 뒤 "도와줄 사람"을 소개해요.</li>
+<li><b>칭찬·운세</b> — "인상이 좋으세요", "복이 많아 보여요"로 시작해 조상·기운 이야기로 넘어가요.</li>
+<li><b>길 묻기</b> — 길을 알려주면 같은 방향이라며 따라와 개인적인 질문을 해요.</li>
+<li><b>무료 공부 모임</b> — 인문학·성경 공부라며 단체를 밝히지 않고 초대해요.</li>
+<li><b>위장 동아리·봉사</b> — 학교에 등록되지 않은 모임이 동아리처럼 활동해요.</li>
+<li><b>인터뷰·촬영 협조</b> — 졸업 작품을 핑계로 연락처를 받아 가요.</li>
+<li><b>지인의 소개</b> — 아는 사람을 통해 오면 경계가 쉽게 풀려요.</li></ul>
+<h3>공통 신호</h3><ul><li>연락처나 SNS를 달라고 한다</li><li>다시 만나자고 한다</li><li>단체를 물으면 대답을 피한다</li><li>가족·친구에게 비밀로 하라고 한다</li></ul>`},
+  contact:{t:'이미 연락처를 줬다면',h:`<p>연락처를 줬다고 해서 끝난 게 아니에요. 지금이라도 정리하면 돼요.</p>
+<h3>이렇게 해보세요</h3><ul><li>연락이 오면 "관심 없어요" 한 번만 말하고 더 설명하지 않아요.</li>
+<li>계속 연락이 오면 번호와 SNS를 차단해도 괜찮아요.</li><li>약속을 잡았다면 취소한다고 짧게 알리거나 가지 않아도 돼요.</li>
+<li>불안하면 친구나 가족에게 상황을 알려두세요.</li></ul>
+<h3>위협을 느낀다면</h3><p>집이나 학교로 찾아오거나 따라오는 등 위협을 느끼면 112에 신고하세요.</p>`},
+  family:{t:'가족·친구가 빠졌다면',h:`<p>가까운 사람이 이상한 모임에 다니는 것 같다면, 관계를 지키는 것이 가장 중요해요.</p>
+<h3>대화할 때 주의할 점</h3><ul><li>비난하거나 몰아붙이면 오히려 모임 쪽으로 더 멀어질 수 있어요.</li>
+<li>"요즘 어떤 사람들 만나?"처럼 열린 질문으로 이야기를 들어주세요.</li><li>연락이 끊기지 않게 꾸준히 일상적인 연락을 이어가세요.</li></ul>
+<h3>도움 받기</h3><p>혼자 해결하려 하지 말고 학교 상담센터나 전문 상담 기관에 함께 상담해 보세요.</p>`}
+};
+
+/* 데모용 예시 제보 (Claude 밖에서 열었을 때 이 기기에만 저장). 실제 사례가 아닌 예시예요. */
+const H=3600000;
+const SAMPLE_REPORTS=[
+  {id:'s1',area:'gate',lat:36.3636,lng:127.3455,method:0,time:1,spot:'정문 앞 횡단보도',memo:'(예시) 설문 끝나고 결과 알려준다며 연락처를 물어봄',ago:5*H},
+  {id:'s2',area:'gate',lat:36.3639,lng:127.3460,method:1,time:1,spot:'정문 버스 정류장',memo:'(예시) 심리테스트 5분만 해달라고 함',ago:26*H},
+  {id:'s3',area:'gung',lat:36.3621,lng:127.3508,method:3,time:2,spot:'궁동 로데오 거리',memo:'(예시) 인상이 좋다며 말을 걸어옴',ago:50*H},
+  {id:'s4',area:'gung',lat:36.3625,lng:127.3516,method:4,time:2,spot:'궁동 카페 골목',memo:'(예시) 무료 인문학 모임에 초대',ago:75*H},
+  {id:'s5',area:'gung',lat:36.3618,lng:127.3511,method:0,time:1,spot:'궁동 편의점 앞',memo:'(예시) 설문 후 근처 센터로 가자고 함',ago:100*H},
+  {id:'s6',area:'eoeun',lat:36.3659,lng:127.3583,method:6,time:1,spot:'어은동 원룸촌 입구',memo:'(예시) 졸업 작품 인터뷰를 부탁함',ago:130*H},
+  {id:'s7',area:'yuseong',lat:36.3539,lng:127.3418,method:2,time:3,spot:'유성온천역 3번 출구',memo:'(예시) 길을 묻더니 같은 방향이라며 따라옴',ago:160*H},
+  {id:'s8',area:'bongmyeong',lat:36.3556,lng:127.3478,method:5,time:2,spot:'봉명동 먹자골목',memo:'(예시) 봉사 동아리라며 소속을 밝히지 않음',ago:200*H}
+];
+const SAMPLE_NEWS=[
+  {id:'sn1',title:'캠퍼스 파고든 사이비 포교, 학생 92.6% 대처법 몰라',source:'서울과기대신문',ago:4*24*H},
+  {id:'sn2',title:'"나도 당했다" 피해 속출… 2030 직장인들 난리 난 이유',source:'한국경제',ago:90*24*H}
+];
+
+/* ===================== 공통 ===================== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2400);}
+const ls={get(k,d){try{const v=localStorage.getItem('sbk.'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem('sbk.'+k,JSON.stringify(v));}catch(e){}}};
+function ago(ts){if(!ts)return '';const m=Math.floor((Date.now()-ts)/60000);if(m<1)return '방금';if(m<60)return m+'분 전';const h=Math.floor(m/60);if(h<24)return h+'시간 전';const d=Math.floor(h/24);return d<7?d+'일 전':new Date(ts).toLocaleDateString('ko-KR',{month:'long',day:'numeric'});}
+const areaName=id=>(AREAS.find(a=>a.id===id)||{}).name||'기타';
+const ICON={pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',chev:'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'};
+
+function chips(group,items,selected,onChange){
+  document.querySelectorAll(`[data-group="${group}"]`).forEach(el=>{
+    el.innerHTML=items.map((it,i)=>`<button type="button" class="chip" aria-pressed="${i===selected}" data-i="${i}">${esc(it)}</button>`).join('');
+    el.addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;el.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');onChange&&onChange(+b.dataset.i);});
+  });
+}
+const picked=g=>{const b=document.querySelector(`[data-group="${g}"] .chip[aria-pressed=true]`);return b?+b.dataset.i:0;};
+
+/* ===================== 저장소 (공유 DB, 없으면 이 기기) ===================== */
+const store={db:null,user:null,isAdmin:false,uid:null,pending:[],approved:[],news:[],ready:false};
+function localCol(name){return ls.get('col.'+name,[]);}
+function localSave(name,arr){ls.set('col.'+name,arr);}
+async function addReport(data){
+  if(store.offline){const e=new Error('offline');e.code='signed_out';throw e;}
+  const id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const doc={...data,createdAt:Date.now()};
+  if(store.db){await store.db.collection('reports').doc(id).set(doc);}
+  else if(store.local&&!store.isAdmin){localSave('approved',[...localCol('approved'),{id,...doc,local:true}]);refreshLocal();} // 데모: 이 기기 지도에 바로 표시
+  else{const a=localCol('reports');a.push({id,...doc});localSave('reports',a);refreshLocal();}
+  const mine=ls.get('mine',[]);mine.unshift(id);ls.set('mine',mine.slice(0,50));
+  return id;
+}
+async function approveReport(r){
+  const {id,...data}=r;
+  if(store.db){await store.db.collection('approved').doc(id).set({...data,approvedAt:Date.now()});await store.db.collection('reports').doc(id).delete();}
+  else{localSave('approved',[...localCol('approved'),{...r,approvedAt:Date.now()}]);localSave('reports',localCol('reports').filter(x=>x.id!==id));refreshLocal();}
+}
+async function removeDoc(col,id){
+  if(store.db){await store.db.collection(col).doc(id).delete();}
+  else{localSave(col,localCol(col).filter(x=>x.id!==id));refreshLocal();}
+}
+async function addNews(n){
+  if(store.db){await store.db.collection('news').add({...n,createdAt:Date.now()});}
+  else{localSave('news',[...localCol('news'),{id:'n'+Date.now(),...n,createdAt:Date.now()}]);refreshLocal();}
+}
+function refreshLocal(){
+  store.pending=localCol('reports').sort((a,b)=>b.createdAt-a.createdAt);
+  store.approved=localCol('approved').sort((a,b)=>b.createdAt-a.createdAt);
+  store.news=localCol('news').sort((a,b)=>b.createdAt-a.createdAt);
+  store.ready=true;renderAll();
+}
+function subscribe(col,key,order){
+  const timer=setTimeout(()=>{if(!store['_'+key]){store['_'+key]='slow';renderAll();}},10000);
+  store.db.collection(col).orderBy(order,'desc').limit(300).onSnapshot(snap=>{
+    clearTimeout(timer);store['_'+key]='ok';
+    store[key]=snap.docs.map(d=>({id:d.id,...d.data()}));store.ready=true;renderAll();
+  },err=>{clearTimeout(timer);store['_'+key]='err';renderAll();});
+}
+async function initStore(){
+  let db=null,user=null;
+  try{[db,user]=await Promise.all([window.claude?claude.use('db'):null,window.claude?claude.use('user'):null]);}catch(e){}
+  store.user=user;
+  try{store.isAdmin=user?!!(await user.canEdit()):false;}catch(e){store.isAdmin=false;}
+  if(db){store.db=db;subscribe('approved','approved','createdAt');subscribe('news','news','createdAt');
+    if(store.isAdmin)subscribe('reports','pending','createdAt');
+  }else if(window.claude){store.isAdmin=false;store.offline=true;store.ready=true;}
+  else{ // Claude 밖(GitHub Pages 등): 이 기기에만 저장하는 데모 모드. 관리자 화면은 ?admin=1 로 열기
+    store.local=true;store.isAdmin=/[?&]admin=1/.test(location.search);
+    if(!ls.get('seeded',false)){const now=Date.now();
+      localSave('approved',[...localCol('approved'),...SAMPLE_REPORTS.map(({ago,...r})=>({...r,sample:true,createdAt:now-ago}))]);
+      localSave('news',[...localCol('news'),...SAMPLE_NEWS.map(({ago,...n})=>({...n,createdAt:now-ago}))]);ls.set('seeded',true);}
+    refreshLocal();}
+  renderMenu();renderAll();
+}
+
+/* ===================== 라우팅 ===================== */
+const TABS=['main','map','report','quiz','ai'];
+let prevView=null;
+function route(){
+  let h=(location.hash||'#main').slice(1);
+  let view=h,arg=null;
+  if(h.startsWith('article-')){view='article';arg=h.slice(8);}
+  const el=$('#v-'+view)||$('#v-main');
+  if(!$('#v-'+view)){view='main';}
+  const under=view==='menu'?(prevView&&prevView!=='menu'?prevView:'main'):null;
+  document.querySelectorAll('.view').forEach(v=>{if(under&&v.id==='v-'+under)return;v.classList.remove('on','slide-left','fade','closing');});
+  if(under)$('#v-'+under).classList.add('on');
+  el.classList.add('on',view==='menu'?'slide-left':'fade');
+  $('#backdrop').classList.toggle('on',view==='menu');$('#backdrop').classList.remove('closing');
+  const tabView=under||view;
+  $('#tabbar').style.display=['main','map','quiz','ai'].includes(tabView)?'grid':'none';
+  document.querySelectorAll('#tabbar a').forEach(a=>{a.dataset.tab===tabView?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current');});
+  if(view==='menu'){prevView=under;window.__menuOpen=true;return;}
+  window.__menuOpen=false;
+  if(view==='quiz'&&prevView!=='quiz')startQuiz();
+  if(view==='article')renderArticle(arg);
+  if(view==='my')renderMy();
+  if(view==='pick')openPicker();
+  if(view==='report')renderLocBox();
+  if(view==='map')onMapShown();
+  if(view==='admin'&&!store.isAdmin){location.hash='#main';return;}
+  prevView=view;window.scrollTo(0,0);
+}
+const navStack=[location.hash||'#main'];
+window.addEventListener('hashchange',()=>{const h=location.hash||'#main';if(window.__replace){window.__replace=false;navStack[navStack.length-1]=h;}else if(navStack.length>1&&navStack[navStack.length-2]===h)navStack.pop();else navStack.push(h);route();});
+function goBack(){if(navStack.length>1)history.back();else location.hash='#main';}
+function closeMenu(then){const m=$('#v-menu'),bd=$('#backdrop');m.classList.remove('slide-left');m.classList.add('closing');bd.classList.add('closing');setTimeout(then||goBack,200);}
+document.addEventListener('click',e=>{
+  if(e.target.closest('.back')){if(window.__menuOpen)closeMenu();else goBack();return;}
+  if(e.target.id==='backdrop'){closeMenu();return;}
+  const a=e.target.closest('#v-menu a.row');if(a&&window.__menuOpen){e.preventDefault();const h=a.getAttribute('href');closeMenu(()=>{window.__replace=true;location.replace(h);});}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.__menuOpen&&!$('#call').classList.contains('on'))closeMenu();});
+
+/* ===================== 렌더 ===================== */
+function renderAll(){renderNews();renderRecent();renderMap();renderAdmin();renderMenu();if($('#v-my').classList.contains('on'))renderMy();renderAlertPill();}
+function renderNews(){
+  const el=$('#news-list');
+  if(!store.ready){el.innerHTML='<div class="empty">소식을 불러오는 중이에요</div>';return;}
+  if(store.offline){el.innerHTML='<div class="empty">Claude에 로그인하면 소식을 볼 수 있어요</div>';return;}
+  if(store._news==='err'||store._news==='slow'&&!store.news.length){el.innerHTML='<div class="empty">소식을 불러오지 못했어요. 잠시 뒤 다시 열어주세요.</div>';return;}
+  const list=store.news.slice(0,3);
+  $('#news-admin').innerHTML=store.isAdmin?'<a class="link" href="#admin">소식 등록</a>':'';
+  el.innerHTML=list.length?list.map(n=>{const safe=/^https?:\/\//.test(n.url||'');return `<${safe?'a href="'+esc(n.url)+'" target="_blank" rel="noopener"':'div class="it"'}><b>${esc(n.title)}</b><span class="hint">${esc(n.source||'')}${n.source?' · ':''}${ago(n.createdAt)}</span></${safe?'a':'div'}>`;}).join('')
+    :'<div class="empty">아직 등록된 소식이 없어요</div>';
+}
+function reportRow(r,extra=''){return `<div class="row"><span class="dot red">${ICON.pin}</span><span class="t"><b>${esc(areaName(r.area))} · ${esc(METHODS[r.method]||'기타')}${r.sample?' <span class="pill" style="background:var(--line);color:var(--sub)">예시</span>':''}</b><span>${esc(r.spot||'')} · ${ago(r.createdAt)}</span></span>${extra}</div>`;}
+function renderRecent(){
+  const el=$('#recent');
+  if(!store.ready){return;}
+  if(store.offline){el.innerHTML='<div class="empty">Claude에 로그인하면 최근 제보를 볼 수 있어요</div>';return;}
+  el.innerHTML=store.approved.length?store.approved.slice(0,2).map(r=>reportRow(r)).join(''):'<div class="empty">아직 게시된 제보가 없어요.<br>포교를 겪었다면 첫 제보를 남겨주세요.</div>';
+}
+/* ===================== 실제 지도 (Leaflet + OpenStreetMap) ===================== */
+const HAS_L=!!window.L;
+if(HAS_L)document.body.classList.add('has-leaflet');
+const DEFAULT_CENTER=[36.3640,127.3480];
+const TILE_URL='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const TILE_OPT={maxZoom:19,attribution:'&copy; OpenStreetMap'};
+let userPos=null,lmap=null,lmLayer=null,meLayer=null,showAll=false;
+function distM(a,b){const R=6371000,t=Math.PI/180,dLat=(b[0]-a[0])*t,dLng=(b[1]-a[1])*t;const h=Math.sin(dLat/2)**2+Math.cos(a[0]*t)*Math.cos(b[0]*t)*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+const fmtDist=m=>m<1000?Math.round(m/10)*10+'m':(m/1000).toFixed(1)+'km';
+function latlngOf(r){
+  if(typeof r.lat==='number'&&typeof r.lng==='number')return [r.lat,r.lng];
+  const a=AREAS.find(a=>a.id===r.area)||AREAS[0];
+  if(typeof r.x==='number'&&typeof r.y==='number')return [a.lat+(a.y-r.y)*0.00004,a.lng+(r.x-a.x)*0.00005]; // 예전 그림 지도 좌표 변환
+  return [a.lat,a.lng];
+}
+function nearestAreaLL(lat,lng){let best=null,bd=1e12;AREAS.filter(a=>a.id!=='etc').forEach(a=>{const d=distM([lat,lng],[a.lat,a.lng]);if(d<bd){bd=d;best=a;}});return bd<700?{...best,d:bd}:{...AREAS.find(a=>a.id==='etc'),d:bd};}
+function locLabelLL(lat,lng){const a=nearestAreaLL(lat,lng);return a.id==='etc'?'충남대 주변':a.name+' 근처';}
+const radiusM=()=>[100,300,500][alertCfg.r];
+function clusters(list){const cs=[];list.forEach(r=>{const p=latlngOf(r);const c=cs.find(c=>distM(c.p,p)<60);if(c)c.items.push(r);else cs.push({p,items:[r]});});return cs;}
+function ensureMap(){
+  if(lmap||!HAS_L)return;
+  lmap=L.map('lmap',{zoomControl:false}).setView(DEFAULT_CENTER,15);
+  L.tileLayer(TILE_URL,TILE_OPT).addTo(lmap);
+  lmLayer=L.layerGroup().addTo(lmap);meLayer=L.layerGroup().addTo(lmap);
+}
+function onMapShown(){if(!HAS_L)return;ensureMap();setTimeout(()=>{lmap.invalidateSize();renderMap();drawMe();},60);}
+function drawMe(){
+  if(!lmap||!userPos)return;meLayer.clearLayers();
+  L.circle(userPos,{radius:radiusM(),color:'#2F6FED',weight:1.5,fillOpacity:.07}).addTo(meLayer);
+  L.marker(userPos,{icon:L.divIcon({className:'',html:'<div class="me"></div>',iconSize:[18,18],iconAnchor:[9,9]}),interactive:false}).addTo(meLayer);
+}
+function locate(cb,quiet){
+  if(!navigator.geolocation){if(!quiet)toast('이 브라우저에서는 현재 위치를 쓸 수 없어요');return;}
+  navigator.geolocation.getCurrentPosition(p=>{userPos=[p.coords.latitude,p.coords.longitude];cb&&cb(userPos);},
+    e=>{if(!quiet)toast(e.code===1?'위치 권한이 꺼져 있어요. 브라우저 설정에서 허용해 주세요':'현재 위치를 찾지 못했어요. 잠시 뒤 다시 시도해 주세요');},
+    {enableHighAccuracy:true,timeout:8000,maximumAge:30000});
+}
+let mapFilter=null; // 선택한 묶음의 제보 id 집합
+function renderMap(){
+  const q=($('#map-q').value||'').trim();
+  if(HAS_L){
+    if(lmap){lmLayer.clearLayers();
+      clusters(store.approved).forEach(c=>{
+        const ids=c.items.map(r=>r.id),sel=!!(mapFilter&&ids.some(id=>mapFilter.has(id))),sample=c.items.every(r=>r.sample);
+        const icon=L.divIcon({className:'',html:`<div class="cnt${sel?' sel':''}${sample?' sample':''}">${c.items.length}</div>`,iconSize:[34,34],iconAnchor:[17,17]});
+        L.marker(c.p,{icon,title:`${areaName(c.items[0].area)} 제보 ${c.items.length}건`}).on('click',()=>{mapFilter=sel?null:new Set(ids);renderMap();}).addTo(lmLayer);
+      });}
+  }else{
+    const svg=$('#map-svg');
+    const pins=store.approved.map(r=>{const p=posOf(r);const on=!!(mapFilter&&mapFilter.has(r.id));
+      return `<g class="pin" data-id="${esc(r.id)}" tabindex="0" role="button" aria-label="${esc(areaName(r.area))} ${esc(METHODS[r.method]||'')} 제보"><path d="M${p.x} ${p.y}c0 0-9-9.5-9-16a9 9 0 0 1 18 0c0 6.5-9 16-9 16z" fill="${on?'#0A5A4F':'#D2463C'}" stroke="#fff" stroke-width="2"/><circle cx="${p.x}" cy="${p.y-16}" r="3.2" fill="#fff"/></g>`;}).join('');
+    svg.innerHTML=baseMap()+pins;
+  }
+  let list=store.approved.map(r=>({r,d:userPos?distM(userPos,latlngOf(r)):null}));
+  if(mapFilter)list=list.filter(x=>mapFilter.has(x.r.id));
+  if(q)list=list.filter(x=>[areaName(x.r.area),x.r.spot,METHODS[x.r.method],x.r.memo].join(' ').includes(q));
+  let title;
+  if(mapFilter)title=`선택한 곳 제보 ${list.length}건`;
+  else if(q)title=`검색 결과 ${list.length}건`;
+  else if(userPos){list.sort((a,b)=>a.d-b.d);const n=list.filter(x=>x.d<=radiusM()).length;if(!showAll)list=list.filter(x=>x.d<=radiusM());title=showAll?`가까운 순 제보 ${list.length}건`:`내 주변 ${RADII[alertCfg.r]} 제보 ${n}건`;}
+  else title=`주변 포교 제보 ${list.length}건`;
+  $('#map-title').textContent=title;
+  const badge=$('#map-badge');if(userPos){const n=store.approved.filter(r=>distM(userPos,latlngOf(r))<=radiusM()).length;badge.textContent=`내 주변 ${RADII[alertCfg.r]} · 제보 ${n}건`;badge.classList.add('on');}
+  $('#map-all').style.display=mapFilter||q||(userPos&&!showAll)?'block':'none';
+  $('#map-list').innerHTML=!store.ready?'<div class="empty">제보를 불러오는 중이에요</div>':(list.length?list.slice(0,30).map(({r,d})=>reportRow(r,d!=null?`<span class="dist">${fmtDist(d)}</span>`:'')+(r.memo?`<p class="muted" style="padding:0 16px 4px 70px;margin-top:-4px">${esc(r.memo)}</p>`:'')).join(''):`<div class="empty">${userPos&&!showAll?'내 주변에는 아직 제보가 없어요':'표시할 제보가 없어요'}</div>`);
+}
+$('#map-svg').addEventListener('click',e=>{const g=e.target.closest('.pin');if(!g)return;mapFilter=mapFilter&&mapFilter.has(g.dataset.id)?null:new Set([g.dataset.id]);renderMap();});
+$('#map-svg').addEventListener('keydown',e=>{if(e.key==='Enter'){const g=e.target.closest('.pin');if(g){mapFilter=new Set([g.dataset.id]);renderMap();}}});
+$('#map-q').addEventListener('input',()=>renderMap());
+$('#map-all').onclick=()=>{if(mapFilter||$('#map-q').value){mapFilter=null;$('#map-q').value='';}else showAll=true;renderMap();};
+$('#loc-btn').onclick=()=>locate(p=>{showAll=false;drawMe();if(lmap)lmap.setView(p,16);renderMap();toast('현재 위치를 찾았어요');});
+
+function renderMenu(){
+  const items=[['#quiz','포교 패턴 퀴즈','상황별 퀴즈로 대처법 익히기'],['#info','기타 정보','자문 채널과 추가 정보'],['#alert','위치 알림 설정','제보 많은 곳 근처에서 알림 받기'],['#my','내 제보 내역','내가 올린 제보와 처리 상태']];
+  if(store.isAdmin)items.push(['#admin','관리자','제보 승인과 소식 등록']);
+  $('#menu-list').innerHTML=items.map(([h,t,d])=>`<a class="row" href="${h}" style="text-decoration:none;color:inherit"><span class="dot"></span><span class="t"><b>${t}</b><span>${d}</span></span>${ICON.chev}</a>`).join('');
+}
+function renderMy(){
+  const mine=ls.get('mine',[]);const el=$('#my-list');
+  if(!mine.length){el.innerHTML='<div class="empty">아직 올린 제보가 없어요</div><a class="btn main" href="#report" style="text-decoration:none">제보하기</a>';return;}
+  const ap=new Map(store.approved.map(r=>[r.id,r]));const pe=new Map(store.pending.map(r=>[r.id,r]));
+  const local=ls.get('mineData',{});
+  el.innerHTML=mine.map(id=>{const r=ap.get(id)||pe.get(id)||local[id];if(!r)return '';
+    const st=ap.has(id)?'<span class="pill safe">게시됨</span>':(local[id]&&!store.isAdmin&&store.db?'<span class="pill amber">확인 대기</span>':(pe.has(id)?'<span class="pill amber">확인 대기</span>':'<span class="pill red">게시되지 않음</span>'));
+    return reportRow(r,st);}).join('');
+}
+function renderAdmin(){
+  if(!store.isAdmin)return;
+  $('#pending-count').textContent=store.pending.length;
+  $('#pending-list').innerHTML=store.pending.length?store.pending.map(r=>`<div class="adminrow"><b>${esc(areaName(r.area))} · ${esc(METHODS[r.method]||'기타')} · ${esc(TIMES[r.time]||'')}</b><span class="muted">${esc(r.spot)}</span>${r.memo?`<span class="muted">${esc(r.memo)}</span>`:''}<span class="hint">${ago(r.createdAt)}</span>
+    <div class="acts"><button style="background:var(--main);color:#fff" data-approve="${esc(r.id)}">승인하고 게시</button><button style="background:var(--bg);border:1.5px solid var(--line)" data-reject="${esc(r.id)}">삭제</button></div></div>`).join(''):'<div class="empty">승인을 기다리는 제보가 없어요</div>';
+  $('#news-admin-list').innerHTML=store.news.map(n=>`<div class="adminrow"><b>${esc(n.title)}</b><span class="hint">${esc(n.source||'')}</span><div class="acts"><button style="background:var(--bg);border:1.5px solid var(--line)" data-delnews="${esc(n.id)}">삭제</button></div></div>`).join('');
+  $('#approved-admin').innerHTML=store.approved.length?store.approved.slice(0,30).map(r=>`<div class="adminrow"><b>${esc(areaName(r.area))} · ${esc(METHODS[r.method]||'기타')}</b><span class="muted">${esc(r.spot)}</span><div class="acts"><button style="background:var(--bg);border:1.5px solid var(--line)" data-delapproved="${esc(r.id)}">게시 내리기</button></div></div>`).join(''):'<div class="empty">게시된 제보가 없어요</div>';
+}
+$('#v-admin').addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;
+  try{
+    if(b.dataset.approve){const r=store.pending.find(x=>x.id===b.dataset.approve);if(r){b.disabled=true;await approveReport(r);toast('제보를 게시했어요');}}
+    else if(b.dataset.reject){b.disabled=true;await removeDoc('reports',b.dataset.reject);toast('제보를 삭제했어요');}
+    else if(b.dataset.delnews){b.disabled=true;await removeDoc('news',b.dataset.delnews);toast('소식을 삭제했어요');}
+    else if(b.dataset.delapproved){b.disabled=true;await removeDoc('approved',b.dataset.delapproved);toast('게시를 내렸어요');}
+  }catch(err){b.disabled=false;toast('처리하지 못했어요. 잠시 뒤 다시 시도해 주세요');}
+});
+$('#news-form').addEventListener('submit',async e=>{
+  e.preventDefault();const t=$('#n-title').value.trim(),s=$('#n-source').value.trim(),u=$('#n-url').value.trim();
+  if(!t){$('#n-err').textContent='기사 제목을 입력해 주세요';return;}
+  if(u&&!/^https?:\/\//.test(u)){$('#n-err').textContent='주소는 http:// 또는 https://로 시작해야 해요';return;}
+  $('#n-err').textContent='';
+  try{await addNews({title:t,source:s,url:u});['#n-title','#n-source','#n-url'].forEach(x=>$(x).value='');toast('소식을 등록했어요');}catch(err){toast('등록하지 못했어요');}
+});
+
+
+/* ===================== 지도 그림 · 위치 선택 ===================== */
+const MAP_W=400,MAP_H=520;
+function baseMap(){
+  return `<rect x="-400" y="-400" width="1200" height="1320" fill="#E7EEEC"/>
+  <rect x="20" y="40" width="90" height="70" rx="8" fill="#D9E4E1"/><rect x="150" y="30" width="120" height="90" rx="8" fill="#D9E4E1"/><rect x="300" y="60" width="80" height="60" rx="8" fill="#D9E4E1"/>
+  <rect x="150" y="160" width="110" height="140" rx="10" fill="#CFE5D6"/><text x="205" y="236" text-anchor="middle" font-size="12" font-weight="600" fill="#5C8A6E">충남대학교</text>
+  <rect x="20" y="160" width="100" height="140" rx="8" fill="#D9E4E1"/><rect x="295" y="160" width="85" height="130" rx="8" fill="#D9E4E1"/>
+  <rect x="20" y="340" width="100" height="60" rx="8" fill="#D9E4E1"/><rect x="150" y="340" width="110" height="40" rx="8" fill="#D9E4E1"/><rect x="295" y="340" width="85" height="50" rx="8" fill="#D9E4E1"/>
+  <rect x="20" y="430" width="100" height="70" rx="8" fill="#D9E4E1"/><rect x="295" y="420" width="85" height="80" rx="8" fill="#D9E4E1"/>
+  <path d="M-400 140H800M-400 320H800M135 -400V920M280 -400V920" stroke="#fff" stroke-width="14"/><path d="M-400 520L800 380" stroke="#fff" stroke-width="18"/>
+  <path d="M205 140V160M205 300V320" stroke="#fff" stroke-width="8"/>
+  <text x="70" y="136" text-anchor="middle" font-size="9" fill="#8A97A8">대학로</text><text x="141" y="90" font-size="9" fill="#8A97A8" transform="rotate(90 141 90)">궁동로</text>
+  <text x="340" y="316" text-anchor="middle" font-size="9" fill="#8A97A8">온천로</text>
+  ${AREAS.filter(a=>a.id!=='etc').map(a=>`<text x="${a.x}" y="${a.y+4}" text-anchor="middle" font-size="12" font-weight="600" fill="#5C6780" stroke="#E7EEEC" stroke-width="3" paint-order="stroke">${a.name}</text>`).join('')}
+  <circle cx="205" cy="318" r="5" fill="#0F7B6C"/><text x="214" y="332" font-size="9" fill="#0F7B6C">정문</text>`;
+}
+function nearestArea(x,y){
+  let best=null,bd=1e9;AREAS.filter(a=>a.id!=='etc').forEach(a=>{const d=Math.hypot(a.x-x,a.y-y);if(d<bd){bd=d;best=a;}});
+  return bd<120?best:AREAS.find(a=>a.id==='etc');
+}
+function locLabel(x,y){const a=nearestArea(x,y);return a.id==='etc'?'충남대 주변':a.name+' 근처';}
+function posOf(r){if(typeof r.x==='number'&&typeof r.y==='number')return {x:r.x,y:r.y};const a=AREAS.find(a=>a.id===r.area)||AREAS[0];return {x:a.x,y:a.y};}
+let chosenLoc=null;
+const pick={cx:205,cy:300,zoom:2,drag:null};
+let pmap=null,miniMap=null;
+function pickView(){
+  const el=$('#pickmap');const w=el.clientWidth||390,h=el.clientHeight||600;
+  const vw=MAP_W/pick.zoom,vh=vw*h/w;
+  pick.cx=Math.min(Math.max(pick.cx,0),MAP_W);pick.cy=Math.min(Math.max(pick.cy,0),MAP_H);
+  $('#pick-svg').setAttribute('viewBox',`${pick.cx-vw/2} ${pick.cy-vh/2} ${vw} ${vh}`);
+  $('#pick-label').textContent=locLabel(pick.cx,pick.cy);
+  $('#pick-sub').textContent='핀이 가리키는 곳으로 제보 위치가 저장돼요';
+  return {w,vw};
+}
+function updatePickLabel(){const c=pmap.getCenter();$('#pick-label').textContent=locLabelLL(c.lat,c.lng);$('#pick-sub').textContent='지도를 움직여 핀을 정확한 곳에 맞춰 주세요';}
+function openPicker(){
+  if(HAS_L){
+    if(!pmap){
+      pmap=L.map('lpick',{zoomControl:true});L.tileLayer(TILE_URL,TILE_OPT).addTo(pmap);pmap.zoomControl.setPosition('bottomright');
+      pmap.on('movestart',()=>$('#pickmap').classList.add('dragging'));
+      pmap.on('moveend',()=>{$('#pickmap').classList.remove('dragging');updatePickLabel();});
+    }
+    const start=chosenLoc&&chosenLoc.lat!=null?[chosenLoc.lat,chosenLoc.lng]:(userPos||DEFAULT_CENTER);
+    setTimeout(()=>{pmap.invalidateSize();pmap.setView(start,17);updatePickLabel();},60);
+    if(!chosenLoc&&!userPos)locate(p=>{if(pmap)pmap.setView(p,17);},true);
+    return;
+  }
+  if(chosenLoc){pick.cx=chosenLoc.x;pick.cy=chosenLoc.y;}
+  $('#pick-svg').innerHTML=baseMap();
+  requestAnimationFrame(pickView);
+}
+(function(){
+  const el=$('#pickmap');
+  if(!HAS_L){ // 지도 라이브러리를 못 불러왔을 때만 그림 지도로 위치 선택
+    el.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;el.setPointerCapture(e.pointerId);pick.drag={x:e.clientX,y:e.clientY,cx:pick.cx,cy:pick.cy};el.classList.add('dragging');});
+    el.addEventListener('pointermove',e=>{if(!pick.drag)return;const {w,vw}=pickView();const k=vw/w;pick.cx=pick.drag.cx-(e.clientX-pick.drag.x)*k;pick.cy=pick.drag.cy-(e.clientY-pick.drag.y)*k;pickView();});
+    const end=()=>{if(!pick.drag)return;pick.drag=null;el.classList.remove('dragging');};
+    el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+    el.addEventListener('wheel',e=>{e.preventDefault();pick.zoom=Math.min(5,Math.max(1,pick.zoom*(e.deltaY<0?1.2:1/1.2)));pickView();},{passive:false});
+    $('#zoom-in').onclick=()=>{pick.zoom=Math.min(5,pick.zoom*1.4);pickView();};
+    $('#zoom-out').onclick=()=>{pick.zoom=Math.max(1,pick.zoom/1.4);pickView();};
+    window.addEventListener('resize',()=>{if($('#v-pick').classList.contains('on'))pickView();});
+  }
+  $('#pick-me').onclick=()=>locate(p=>{if(pmap)pmap.setView(p,17);toast('현재 위치로 맞췄어요');});
+  if(!HAS_L)$('#pick-me').style.display='none';
+  $('#pick-ok').onclick=()=>{
+    if(HAS_L){const c=pmap.getCenter();chosenLoc={lat:+c.lat.toFixed(6),lng:+c.lng.toFixed(6),area:nearestAreaLL(c.lat,c.lng).id};}
+    else{const a=nearestArea(pick.cx,pick.cy);chosenLoc={x:pick.cx,y:pick.cy,area:a.id};}
+    $('#loc-err').textContent='';renderLocBox();if(navStack.length>1)history.back();else location.hash='#report';
+  };
+})();
+const PIN_SVG='<svg class="cpin" width="40" height="52" viewBox="0 0 40 52" aria-hidden="true"><path d="M20 51s17-17.5 17-30A17 17 0 0 0 3 21c0 12.5 17 30 17 30z" fill="#0F7B6C"/><circle cx="20" cy="20" r="7" fill="#fff"/></svg>';
+function renderLocBox(){
+  const box=$('#loc-box');
+  if(miniMap){try{miniMap.remove();}catch(e){}miniMap=null;}
+  if(!chosenLoc){box.innerHTML=`<button type="button" class="locprev empty-loc" style="width:100%" id="loc-open"><span style="display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--main)" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><b style="color:var(--main)">지도에서 위치 선택</b><span class="hint">지도를 움직여 정확한 곳을 골라요</span></span></button>`;}
+  else if(chosenLoc.lat!=null&&HAS_L){
+    box.innerHTML=`<div class="locprev"><div class="lmap" id="mini"></div>${PIN_SVG}</div>
+      <div class="locline" style="margin-top:8px"><div class="t"><b>${esc(locLabelLL(chosenLoc.lat,chosenLoc.lng))}</b><span class="hint">${chosenLoc.lat.toFixed(5)}, ${chosenLoc.lng.toFixed(5)}</span></div><button type="button" class="chip" id="loc-open">위치 변경</button></div>`;
+    miniMap=L.map('mini',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,touchZoom:false}).setView([chosenLoc.lat,chosenLoc.lng],17);
+    L.tileLayer(TILE_URL,TILE_OPT).addTo(miniMap);
+    setTimeout(()=>{if(miniMap){miniMap.invalidateSize();miniMap.setView([chosenLoc.lat,chosenLoc.lng],17);}},80);
+  }else{const vw=MAP_W/2.2,vh=vw*150/353;
+    box.innerHTML=`<div class="locprev"><svg class="mapimg" viewBox="${chosenLoc.x-vw/2} ${chosenLoc.y-vh/2} ${vw} ${vh}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${baseMap()}</svg>${PIN_SVG}</div>
+      <div class="locline" style="margin-top:8px"><div class="t"><b>${esc(locLabel(chosenLoc.x,chosenLoc.y))}</b><span class="hint">지도에서 고른 위치</span></div><button type="button" class="chip" id="loc-open">위치 변경</button></div>`;}
+  $('#loc-open').onclick=()=>{location.hash='#pick';};
+}
+renderLocBox();
+
+/* ===================== 제보 ===================== */
+chips('method',METHODS,1);
+chips('time',TIMES,1);
+$('#r-spot').addEventListener('input',()=>$('#r-err').textContent='');
+$('#report-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const spot=$('#r-spot').value.trim();
+  if(!chosenLoc){$('#loc-err').textContent='지도에서 위치를 선택해 주세요';$('#loc-box').scrollIntoView({block:'center'});return;}
+  if(!spot){$('#r-err').textContent='구체적인 장소를 적어주세요';$('#r-spot').focus();return;}
+  const btn=$('#r-submit');btn.disabled=true;btn.textContent='등록하는 중…';
+  const pos=chosenLoc.lat!=null?{lat:chosenLoc.lat,lng:chosenLoc.lng}:{x:Math.round(chosenLoc.x),y:Math.round(chosenLoc.y)};
+  const data={area:chosenLoc.area,...pos,method:picked('method'),time:picked('time'),spot,memo:$('#r-memo').value.trim()};
+  try{
+    const id=await addReport(data);
+    const md=ls.get('mineData',{});md[id]={id,...data,createdAt:Date.now()};ls.set('mineData',md);
+    $('#r-spot').value='';$('#r-memo').value='';chosenLoc=null;renderLocBox();
+    if(store.local&&!store.isAdmin){toast('데모 버전이라 이 기기의 지도에 바로 표시했어요');location.hash='#map';}else location.hash='#done';
+  }catch(err){
+    toast(err&&err.code==='signed_out'?'Claude에 로그인해야 제보를 저장할 수 있어요':err&&err.code==='invalid_argument'?'이 계정은 제보를 저장할 권한이 없어요. 관리자에게 편집 권한을 요청하세요':'제보를 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요');
+  }finally{btn.disabled=false;btn.textContent='제보 등록';}
+});
+
+/* ===================== 퀴즈 ===================== */
+let qi=0,score=0,answered=false;
+function startQuiz(){qi=0;score=0;renderQuiz();}
+function renderQuiz(){
+  const b=$('#quiz-body');
+  if(qi>=QUIZ.length){
+    b.innerHTML=`<div style="text-align:center;padding:60px 0 20px"><div style="font-size:56px;font-weight:700;color:var(--main)">${score} / ${QUIZ.length}</div>
+      <h2 style="font-size:22px;margin-top:8px">${score===QUIZ.length?'완벽해요!':score>=QUIZ.length/2?'잘했어요':'조금 더 알아볼까요?'}</h2>
+      <p class="muted" style="margin-top:8px">틀린 문제는 '포교 수법 총정리'에서 다시 확인해 보세요.</p></div>
+      <div style="flex:1"></div><a class="btn ghost" href="#article-tactics" style="text-decoration:none;color:inherit">포교 수법 총정리 보기</a><button class="btn main" id="q-again">다시 풀기</button>`;
+    $('#q-again').onclick=startQuiz;return;}
+  const Q=QUIZ[qi];answered=false;
+  b.innerHTML=`<div class="sec" style="gap:8px"><div class="sec-head"><span class="muted" style="font-weight:600">문제 ${qi+1} / ${QUIZ.length}</span><span class="hint">맞힌 문제 ${score}</span></div><div class="bar"><i style="width:${qi/QUIZ.length*100}%"></i></div></div>
+   <div class="qcard"><span class="pill">Q. 포교 상황</span><p>${esc(Q.q)}</p></div>
+   ${Q.o.map((o,i)=>`<button class="opt" data-i="${i}"><span class="n">${'①②③④'[i]}</span><span style="flex:1">${esc(o)}</span></button>`).join('')}
+   <div id="q-ex"></div><div style="flex:1"></div><button class="btn main" id="q-next" style="display:none">${qi===QUIZ.length-1?'결과 보기':'다음 문제'}</button>`;
+  b.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{
+    if(answered)return;answered=true;const i=+o.dataset.i;const ok=i===Q.a;if(ok)score++;
+    b.querySelectorAll('.opt').forEach(x=>{const xi=+x.dataset.i;if(xi===Q.a)x.classList.add('right');else if(xi===i)x.classList.add('wrong');});
+    $('#q-ex').innerHTML=`<div class="explain"><b>${ok?'정답이에요':'정답은 '+'①②③④'[Q.a]+'이에요'}</b><p class="muted" style="margin-top:4px;font-size:14px">${esc(Q.e)}</p></div>`;
+    $('#q-next').style.display='flex';
+  });
+  $('#q-next').onclick=()=>{qi++;renderQuiz();};
+}
+
+/* ===================== AI 판별 (규칙 엔진 v2 + AI) ===================== */
+const JUDGE=window.SaibiJudge;
+const checkAns={};
+(function(){
+  const box=$('#ai-checks');
+  JUDGE.CHECK.forEach(c=>box.insertAdjacentHTML('beforeend',`<div class="check"><span>${esc(c.q)}</span><div class="yn" data-check="${c.id}"><button type="button" class="chip" aria-pressed="false" data-v="yes">예</button><button type="button" class="chip" aria-pressed="false" data-v="no">아니오</button></div></div>`));
+  box.addEventListener('click',e=>{const b=e.target.closest('.yn .chip');if(!b)return;const g=b.parentElement,id=g.dataset.check,on=b.getAttribute('aria-pressed')==='true';
+    g.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false'));if(on)delete checkAns[id];else{b.setAttribute('aria-pressed','true');checkAns[id]=b.dataset.v;}});
+})();
+const TIPS={상:['지금 바로 대화를 끝내고 자리를 떠나세요','연락처를 줬다면 차단해도 괜찮아요','계속 따라오면 사람이 많은 곳으로 가고, 위협을 느끼면 112에 신고하세요'],
+  중:['대화를 짧게 끝내세요. 이유를 설명할 필요는 없어요','연락처나 SNS는 주지 마세요','단체 이름을 물어보고, 대답을 피하면 거절하세요'],
+  하:['지금 내용만으로는 포교라고 보기 어려워요','다시 만나자고 하거나 연락처를 달라고 하면 주의하세요'],
+  '판단 어려움':['상황을 조금 더 자세히 적거나 위 확인 질문에 답해 주세요','연락처를 달라고 하거나 다른 곳으로 가자고 하면 바로 거절하세요']};
+function detectMethod(t){const m=[[/설문|조사/,0],[/심리|성격|테스트|검사|mbti|퍼스널/i,1],[/길\s*(을|좀)?\s*(묻|물어)/,2],[/인상|복이|조상|운세|기운/,3],[/공부|성경|인문학/,4],[/동아리|봉사/,5],[/인터뷰|촬영/,6]].find(([re])=>re.test(t));return m?m[1]:null;}
+const ORDER={하:0,중:1,상:2};
+function combine(ai,rule){ // AI와 규칙 엔진 결과 합치기
+  if(ai==='판단 어려움')return rule;if(rule==='판단 어려움')return ai;
+  if(Math.abs(ORDER[ai]-ORDER[rule])>=2)return '중'; // 크게 엇갈리면 중간값
+  return ai;
+}
+let sampleFn=null;
+async function aiAnalyze(text){
+  const rule=JUDGE.judge(text,checkAns);
+  const out={level:rule.level,rule:rule.level,signals:rule.signals,safes:rule.safes,followUps:rule.followUps,tips:TIPS[rule.level],summary:'',method:detectMethod(text),by:'규칙 엔진 v2'};
+  if(!sampleFn)return out;
+  const hints=rule.signals.map(s=>s.label).concat(rule.safes.map(s=>'(안심) '+s.label)).join(', ')||'없음';
+  const answers=JUDGE.CHECK.filter(c=>checkAns[c.id]).map(c=>`${c.q} → ${checkAns[c.id]==='yes'?'예':'아니오'}`).join(' / ')||'응답 없음';
+  const prompt=`너는 대학생이 겪은 상황이 캠퍼스 포교(소속을 숨긴 종교 단체의 접근)인지 판별을 돕는 도우미야.
+특정 종교나 단체 이름을 지목하지 말고, 사용자를 탓하지 마.
+[등급 정의]
+- 상: 연락처·SNS 요구와 재만남 약속, 다른 장소로 데려가기, 조상·영적 이야기, 비밀 요구, 소속 회피 중 핵심 신호가 2개 이상이거나 하나가 매우 강함
+- 중: 낯선 사람이 심리검사·설문·인터뷰·공부 모임·칭찬 같은 미끼로 접근했지만 핵심 신호는 1개 이하
+- 하: 학교·학생회 공식 활동, 원래 아는 사람, 단순한 도움 요청, 거절하자 바로 물러남
+- 판단 어려움: 설명이 너무 짧아 근거가 없음
+[예시]
+"학생회에서 학식 만족도 설문, 학번만 물어봄" → 하
+"길에서 낯선 사람이 심리테스트 5분만 해달라고 함" → 중
+"동아리라는데 소속을 물으니 얼버무림" → 중
+"심리검사 결과 알려주겠다며 다음에 또 만나자고 연락처를 받아감" → 상
+"근처 센터로 가서 얘기하자고 함" → 상
+[규칙 엔진이 찾은 신호] ${hints}
+[사용자 확인 응답] ${answers}
+반드시 JSON으로만 답해:
+{"level":"상|중|하|판단 어려움","summary":"판단 이유 한두 문장","tips":["지금 할 행동 1","2","3"],"method":"설문조사|심리테스트|길 묻기|칭찬·운세|공부 모임|동아리·봉사|인터뷰·촬영|기타"}
+상황: """${text}"""`;
+  try{const v=await sampleFn.json(prompt);
+    if(v&&['상','중','하','판단 어려움'].includes(v.level)){
+      const mi=METHODS.indexOf(v.method);
+      out.level=combine(v.level,rule.level);out.ai=v.level;out.summary=String(v.summary||'');
+      if(Array.isArray(v.tips)&&v.tips.length)out.tips=v.tips.slice(0,4).map(String);
+      if(mi>=0&&mi<7)out.method=mi;out.by='AI + 규칙 엔진 v2';
+    }
+  }catch(e){if(e&&e.code==='not_granted')sampleFn=null;}
+  if(out.level==='상')out.followUps=[];
+  return out;
+}
+$('#ai-input').addEventListener('input',()=>$('#ai-err').textContent='');
+$('#ai-btn').onclick=async()=>{
+  const t=$('#ai-input').value.trim();
+  if(t.length<5&&!Object.keys(checkAns).length){$('#ai-err').textContent='상황을 조금 더 자세히 적어주세요';return;}
+  const b=$('#ai-btn');b.disabled=true;b.innerHTML='<span class="spin"></span>분석하는 중';
+  const r=await aiAnalyze(t);
+  b.disabled=false;b.textContent='다시 분석하기';
+  const msg={상:'포교일 가능성이 높아요',중:'포교일 가능성이 있어요',하:'포교일 가능성은 낮아요','판단 어려움':'판단하기에는 정보가 부족해요'}[r.level];
+  const col={상:'var(--red)',중:'#B57A00',하:'var(--safe)','판단 어려움':'var(--ink)'}[r.level];
+  const sig=r.signals.map(s=>`<div class="r"><i>!</i><span>${esc(s.label)} <span class="ev">“${esc(s.evidence)}”</span></span></div>`)
+    .concat(r.safes.map(s=>`<div class="s"><i>✓</i><span>${esc(s.label)} <span class="ev">“${esc(s.evidence)}”</span></span></div>`)).join('');
+  $('#ai-result').innerHTML=`<div class="result"><span class="muted" style="font-weight:600">분석 결과 · ${esc(r.by)}</span>
+   <div class="meter">${['상','중','하'].map(l=>`<span class="${l} ${l===r.level?'on':''}">${l}</span>`).join('')}</div>
+   <b style="font-size:17px;color:${col}">${msg}</b>
+   ${r.summary?`<p class="muted" style="font-size:14px">${esc(r.summary)}</p>`:''}
+   ${sig?`<div class="sig"><span class="hint" style="font-weight:600">판단 근거</span>${sig}</div>`:''}
+   ${r.tips.length?`<ul>${r.tips.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
+   ${r.followUps.length?`<div class="followq"><b style="font-size:14px">이것도 알려주면 더 정확해져요</b>${r.followUps.map(f=>`<span class="muted">· ${esc(f.q)}</span>`).join('')}<button type="button" class="chip" id="go-checks" style="align-self:flex-start">확인 질문에 답하기</button></div>`:''}
+   ${r.level==='상'||r.level==='중'?'<a class="btn amber" href="#call" style="text-decoration:none;height:48px">가짜 전화로 빠져나가기</a>':''}</div>`;
+  const gc=$('#go-checks');if(gc)gc.onclick=()=>$('#ai-checks').scrollIntoView({behavior:'smooth',block:'center'});
+  const sim=store.approved.filter(x=>r.method==null||x.method===r.method).slice(0,3);
+  $('#ai-similar').innerHTML=`<div class="sec-head"><h2>비슷한 제보 사례</h2></div>`+(sim.length?sim.map(x=>reportRow(x)).join(''):'<div class="empty">아직 비슷한 제보가 없어요</div>');
+};
+
+/* ===================== 가짜 전화 ===================== */
+chips('caller',CALLERS.map(c=>c.n),0,i=>{$('#custom-caller').style.display=i===3?'block':'none';if(i===3)$('#custom-caller').focus();});
+chips('delay',DELAYS.map(d=>d+'초 뒤'),1);
+chips('mode',MODES,2);
+let audioCtx=null,ringT=null,cdT=null,talkT=null;
+function unlockAudio(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume();}catch(e){}}
+function caller(){const i=picked('caller');if(i===3){const n=$('#custom-caller').value.trim()||'친구';return {n,e:n[0]};}return CALLERS[i];}
+function beep(){if(!audioCtx)return;const t=audioCtx.currentTime;[0,.25].forEach(o=>{const os=audioCtx.createOscillator(),g=audioCtx.createGain();os.frequency.setValueAtTime(880,t+o);os.frequency.setValueAtTime(660,t+o+.1);g.gain.setValueAtTime(.0001,t+o);g.gain.exponentialRampToValueAtTime(.4,t+o+.02);g.gain.exponentialRampToValueAtTime(.0001,t+o+.2);os.connect(g).connect(audioCtx.destination);os.start(t+o);os.stop(t+o+.22);});}
+function buzz(p){try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
+function ring(){
+  const c=caller(),m=picked('mode');
+  $('#call-av').textContent=c.e;$('#call-name').textContent=c.n;$('#call-sub').textContent='휴대전화';
+  $('#call-script').style.display='none';$('#call-small').style.visibility='visible';$('#accept-wrap').style.visibility='visible';$('#decline-lab').textContent='거절';
+  const d=new Date();$('#clock').textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+  const el=$('#call');el.classList.add('on','ringing');
+  const tick=()=>{if(m!==1)beep();if(m!==0)buzz([600,400]);};tick();ringT=setInterval(tick,2000);
+  $('#call-decline').focus();
+}
+function stopRing(){clearInterval(ringT);buzz(0);$('#call').classList.remove('ringing');}
+function endCall(msg){stopRing();clearInterval(talkT);$('#call').classList.remove('on');if(msg)toast(msg);}
+function schedule(sec){
+  clearInterval(cdT);let left=sec;$('#cd-num').textContent=left;$('#countdown').classList.add('on');$('#call-start').disabled=true;
+  cdT=setInterval(()=>{left--;$('#cd-num').textContent=left;if(left<=0){clearInterval(cdT);$('#countdown').classList.remove('on');$('#call-start').disabled=false;ring();}},1000);
+}
+$('#call-start').onclick=()=>{unlockAudio();schedule(DELAYS[picked('delay')]);};
+$('#call-now').onclick=()=>{unlockAudio();ring();};
+$('#cd-cancel').onclick=()=>{clearInterval(cdT);$('#countdown').classList.remove('on');$('#call-start').disabled=false;toast('가짜 전화를 취소했어요');};
+$('#call-decline').onclick=()=>endCall();
+$('#call-later').onclick=()=>{endCall('1분 뒤에 다시 울려요');setTimeout(ring,60000);};
+$('#call-msg').onclick=()=>endCall('통화를 끊었어요');
+$('#call-accept').onclick=()=>{
+  stopRing();const c=caller();
+  $('#line1').textContent=`"어 ${['엄마','아빠'].includes(c.n)?c.n:'응'}, 왜?"`;
+  $('#call-script').style.display='block';$('#call-small').style.visibility='hidden';$('#accept-wrap').style.visibility='hidden';$('#decline-lab').textContent='통화 종료';
+  let s=0;$('#call-sub').textContent='00:00';talkT=setInterval(()=>{s++;$('#call-sub').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');},1000);
+};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#call').classList.contains('on'))endCall();});
+
+/* ===================== 위치 알림 (실제 GPS) ===================== */
+const RADII=['100m','300m','500m'],WHENS=['항상','등하교 시간만','직접 설정'];
+const alertCfg=ls.get('alert',{on:false,r:1,w:0});
+chips('radius',RADII,alertCfg.r,i=>{alertCfg.r=i;ls.set('alert',alertCfg);$('#notif-text').textContent=`근처 ${RADII[i]} 안에 포교 제보가 3건 있어요`;drawMe();renderMap();});
+chips('when',WHENS,alertCfg.w,i=>{alertCfg.w=i;ls.set('alert',alertCfg);});
+$('#notif-text').textContent=`근처 ${RADII[alertCfg.r]} 안에 포교 제보가 3건 있어요`;
+function renderAlertPill(){const p=$('#alert-pill');p.textContent=alertCfg.on?'켜짐':'꺼짐';p.className='pill '+(alertCfg.on?'safe':'');p.style.background=alertCfg.on?'':'var(--line)';p.style.color=alertCfg.on?'':'var(--sub)';$('#alert-switch').setAttribute('aria-checked',alertCfg.on);}
+function showBanner(t,s){$('#banner-text').textContent=t;$('#banner-sub').textContent=s;const b=$('#banner');b.classList.add('on');clearTimeout(b._h);b._h=setTimeout(()=>b.classList.remove('on'),4000);}
+let watchId=null;const alerted=new Map();
+function inWhen(){if(alertCfg.w!==1)return true;const h=new Date().getHours();return (h>=8&&h<10)||(h>=17&&h<19);}
+function nearbyReports(){if(!userPos)return [];const R=radiusM();return store.approved.filter(r=>distM(userPos,latlngOf(r))<=R);}
+function topMethod(list){const c={};list.forEach(r=>c[r.method]=(c[r.method]||0)+1);const k=Object.keys(c).sort((a,b)=>c[b]-c[a])[0];return METHODS[k]||'낯선 사람의';}
+function checkNearby(){
+  if(!alertCfg.on||!inWhen())return;
+  const near=nearbyReports();if(!near.length)return;
+  const key=near.map(r=>r.id).sort().join(',');if(Date.now()-(alerted.get(key)||0)<10*60000)return;alerted.set(key,Date.now());
+  const t=`근처 ${RADII[alertCfg.r]} 안에 포교 제보가 ${near.length}건 있어요`,s=`${topMethod(near)} 요청을 조심하세요.`;
+  showBanner(t,s);buzz([200,100,200]);
+  try{if('Notification' in window&&Notification.permission==='granted'&&document.hidden)new Notification('사이비켜',{body:t+' '+s});}catch(e){}
+}
+function startWatch(){
+  if(!navigator.geolocation){toast('이 브라우저에서는 위치 알림을 쓸 수 없어요');return false;}
+  if(watchId!=null)return true;
+  watchId=navigator.geolocation.watchPosition(p=>{userPos=[p.coords.latitude,p.coords.longitude];drawMe();checkNearby();if($('#v-map').classList.contains('on'))renderMap();},
+    e=>{if(e.code===1){toast('위치 권한이 없어 알림을 켤 수 없어요');alertCfg.on=false;ls.set('alert',alertCfg);renderAlertPill();stopWatch();}},
+    {enableHighAccuracy:true,maximumAge:15000});
+  return true;
+}
+function stopWatch(){if(watchId!=null)navigator.geolocation.clearWatch(watchId);watchId=null;}
+$('#alert-switch').onclick=()=>{
+  alertCfg.on=!alertCfg.on;ls.set('alert',alertCfg);renderAlertPill();
+  if(alertCfg.on){if(startWatch())toast('위치 알림을 켰어요. 이 페이지를 열어 둔 동안 알려드려요');try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();}catch(e){}}
+  else{stopWatch();toast('위치 알림을 껐어요');}
+};
+$('#notif-test').onclick=()=>{const n=userPos?nearbyReports().length:store.approved.length;showBanner(`근처 ${RADII[alertCfg.r]} 안에 포교 제보가 ${n||3}건 있어요`,'설문·심리테스트 요청을 조심하세요.');buzz([200]);};
+if(alertCfg.on)startWatch();
+
+/* ===================== 지역별 상담소 ===================== */
+const CHANNELS=[
+  {r:'충청권',name:'대전상담소',who:'정윤석 목사',tel:'042-472-8889',desc:'충청권역 및 신흥 이단 대처',near:true},
+  {r:'전북·전주',name:'전북상담소',who:'',tel:'063-272-5881',desc:'지역 내 1차 연계 거점'},
+  {r:'호남권',name:'광주상담소',who:'임웅기 목사',tel:'062-430-8040',desc:'호남권역 이단 동향 및 캠퍼스 대처 자문'},
+  {r:'수도권 (본부)',name:'안산상담소',who:'진용식 목사',tel:'031-419-2598',desc:'협회 본부, 전 교단 이단 대처 총괄'},
+  {r:'수도권 (특화)',name:'구리상담소',who:'신현욱 목사',tel:'031-568-1691',desc:'신천지 회심 및 반증 교육 특화'},
+  {r:'영남권',name:'부산상담소',who:'황의종 목사',tel:'051-469-8291',desc:'영남권역 및 지역 대학가 이단 대처'},
+  {r:'전국 공통',name:'협회 전국 대표',who:'',tel:'0502-838-1452',desc:'지역 상담소가 없을 때 중앙 연결 통로'}
+];
+const REGIONS=['전체','충청','수도권','호남·전북','영남','전국'];
+const regionMatch=(c,i)=>i===0||[null,/충청/,/수도권/,/호남|전북/,/영남/,/전국/][i].test(c.r);
+function renderChannels(i=0){
+  $('#channel-list').innerHTML=CHANNELS.filter(c=>regionMatch(c,i)).map(c=>`<div class="chan">
+    <div class="top2"><span class="pill main">${esc(c.r)}</span><b>${esc(c.name)}</b>${c.near?'<span class="pill safe">가까운 곳</span>':''}</div>
+    <span class="muted">${esc(c.desc)}${c.who?' · '+esc(c.who):''}</span>
+    <div class="tel"><a href="tel:${c.tel.replace(/-/g,'')}">${esc(c.tel)}</a><button type="button" data-copy="${esc(c.tel)}">번호 복사</button></div></div>`).join('');
+}
+chips('region',REGIONS,0,renderChannels);renderChannels(0);
+$('#channel-list').addEventListener('click',async e=>{const b=e.target.closest('[data-copy]');if(!b)return;
+  try{await navigator.clipboard.writeText(b.dataset.copy);toast('전화번호를 복사했어요');}catch(err){toast(b.dataset.copy+' — 직접 눌러서 복사해 주세요');}});
+
+/* ===================== 글 ===================== */
+function renderArticle(k){const a=ARTICLES[k];if(!a){location.hash='#info';return;}$('#article-title').textContent=a.t;$('#article-body').innerHTML=a.h;}
+
+/* ===================== 시작 ===================== */
+route();renderAlertPill();renderMenu();
+initStore();
+(async()=>{try{const s=window.claude?await claude.use('sample'):null;if(s)sampleFn=s;}catch(e){}})();
+</script>
+</body>
+</html>

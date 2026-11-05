@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>판별 정확도 평가</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--main:#0F7B6C;--main-soft:#E3F2EF;--red:#D2463C;--red-soft:#FCEBE9;--amber:#E8A317;--ink:#17233D;--sub:#5C6780;--mute:#98A2B3;--surf:#F3F6F5;--line:#DCE3E1;--bg:#fff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans KR',system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55;font-size:15px}
+main{max-width:860px;margin:0 auto;padding:28px 16px 60px;display:flex;flex-direction:column;gap:22px}
+h1{font-size:24px}h2{font-size:17px;margin-bottom:10px}
+.muted{color:var(--sub);font-size:14px}
+.card{background:var(--surf);border-radius:16px;padding:18px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{background:var(--surf);border-radius:16px;padding:16px}
+.kpi b{display:block;font-size:30px;font-variant-numeric:tabular-nums}
+.kpi.v2 b{color:var(--main)}
+.kpi span{color:var(--sub);font-size:13px}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{color:var(--sub);font-weight:600;font-size:13px}
+.cm td,.cm th{text-align:center}
+.cm td.hit{background:var(--main-soft);font-weight:700}
+.tag{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600}
+.상{background:var(--red-soft);color:var(--red)}.중{background:#FFF4DB;color:#8A5B00}.하{background:var(--main-soft);color:var(--main)}.판단{background:var(--line);color:var(--sub)}
+textarea{width:100%;min-height:140px;border:1.5px solid var(--line);border-radius:12px;padding:12px;font:inherit;font-size:14px}
+button{font:inherit;border:none;border-radius:12px;background:var(--main);color:#fff;font-weight:700;padding:12px 18px;cursor:pointer}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.seg button{background:var(--bg);color:var(--ink);border:1.5px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <h1>포교 의심도 판별 — 정확도 평가</h1>
+    <p class="muted">기존 엔진(v1, 단어 포함 여부)과 개선 엔진(v2, 표현 패턴·부정문·안심 신호)을 같은 사례로 비교합니다.</p>
+  </div>
+
+  <div class="row seg" id="seg">
+    <button aria-pressed="true" data-set="dev">개발용 사례 (data/cases.json)</button>
+    <button aria-pressed="false" data-set="custom">직접 입력한 테스트 사례</button>
+  </div>
+
+  <div class="card" id="custom-box" style="display:none">
+    <h2>테스트 사례 붙여넣기</h2>
+    <p class="muted" style="margin-bottom:10px">한 줄에 하나씩 <b>정답,상황 문장</b> 형식으로 적어 주세요. 정답은 상·중·하 중 하나예요. 엔진을 만들 때 보지 않은 새 사례여야 공정한 점수가 나옵니다. 엑셀에서 두 열(정답, 문장)을 복사해 붙여도 돼요.</p>
+    <textarea id="custom" placeholder="상,설문 끝나고 결과 알려준다며 다음에 또 만나자고 번호를 받아갔어요&#10;하,학생회에서 축제 만족도 설문을 했어요"></textarea>
+    <div class="row" style="margin-top:10px"><button id="run">평가하기</button><span class="muted" id="custom-msg"></span></div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card"><h2>v2 혼동 행렬</h2><p class="muted" style="margin-bottom:10px">행 = 정답, 열 = 판별 결과. 대각선(초록)이 맞힌 수예요. <b>정답이 '상'인데 '하'로 본 칸</b>이 가장 위험한 실수입니다.</p>
+    <div class="wrap"><table class="cm" id="cm"></table></div></div>
+
+  <div><h2>사례별 결과</h2><div class="wrap"><table id="list"></table></div></div>
+</main>
+<script src="js/judge.js"></script>
+<script>
+const J=window.SaibiJudge;
+const LV=['상','중','하'];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tag=l=>`<span class="tag ${l==='판단 어려움'?'판단':l}">${esc(l)}</span>`;
+let devCases=null;
+
+function evaluate(cases){
+  const rows=cases.map(c=>{const a=J.judgeLegacy(c.text),b=J.judge(c.text);return {...c,v1:a.level,v2:b.level,why:b.signals.map(s=>s.label).concat(b.safes.map(s=>'(안심) '+s.label))};});
+  const n=rows.length||1;
+  const acc=k=>rows.filter(r=>r[k]===r.label).length;
+  const danger=k=>rows.filter(r=>r.label==='상'&&(r[k]==='하'||r[k]==='판단 어려움')).length;
+  const nHigh=rows.filter(r=>r.label==='상').length;
+  const a1=acc('v1'),a2=acc('v2');
+  document.getElementById('kpis').innerHTML=`
+    <div class="kpi"><span>사례 수</span><b>${rows.length}</b></div>
+    <div class="kpi"><span>v1 정확도</span><b>${Math.round(a1/n*100)}%</b><span>${a1}/${rows.length}</span></div>
+    <div class="kpi v2"><span>v2 정확도</span><b>${Math.round(a2/n*100)}%</b><span>${a2}/${rows.length}</span></div>
+    <div class="kpi"><span>'상'을 '하'로 놓친 수 (v1 → v2)</span><b>${danger('v1')} → ${danger('v2')}</b><span>정답 '상' ${nHigh}건 중</span></div>`;
+  const cols=['상','중','하','판단 어려움'];
+  let cm=`<tr><th>정답 \\ 결과</th>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+  LV.forEach(l=>{cm+=`<tr><th>${l}</th>${cols.map(c=>{const k=rows.filter(r=>r.label===l&&r.v2===c).length;return `<td class="${l===c?'hit':''}">${k}</td>`;}).join('')}</tr>`;});
+  document.getElementById('cm').innerHTML=cm;
+  document.getElementById('list').innerHTML=`<tr><th>정답</th><th>v1</th><th>v2</th><th>상황</th><th>v2 근거</th></tr>`+
+    rows.map(r=>`<tr><td>${tag(r.label)}</td><td>${tag(r.v1)}${r.v1===r.label?'':' ✗'}</td><td>${tag(r.v2)}${r.v2===r.label?'':' ✗'}</td><td>${esc(r.text)}</td><td class="muted">${esc(r.why.join(', '))}</td></tr>`).join('');
+}
+
+function parseCustom(t){
+  const out=[],bad=[];
+  t.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).forEach((line,i)=>{
+    const m=line.match(/^\s*(상|중|하)\s*[,\t]\s*(.+)$/);
+    if(m)out.push({label:m[1],text:m[2].replace(/^"|"$/g,'')});else bad.push(i+1);
+  });
+  return {out,bad};
+}
+
+document.getElementById('seg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  document.querySelectorAll('#seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  const custom=b.dataset.set==='custom';
+  document.getElementById('custom-box').style.display=custom?'block':'none';
+  if(custom)runCustom();else if(devCases)evaluate(devCases);
+});
+function runCustom(){
+  const {out,bad}=parseCustom(document.getElementById('custom').value);
+  document.getElementById('custom-msg').textContent=bad.length?`${bad.join(', ')}번째 줄은 형식이 맞지 않아 뺐어요`:'';
+  evaluate(out);
+}
+document.getElementById('run').onclick=runCustom;
+try{const saved=localStorage.getItem('sbk.evalCustom');if(saved)document.getElementById('custom').value=saved;}catch(e){}
+document.getElementById('custom').addEventListener('input',e=>{try{localStorage.setItem('sbk.evalCustom',e.target.value);}catch(err){}});
+
+fetch('data/cases.json').then(r=>r.json()).then(d=>{devCases=d.cases;evaluate(devCases);})
+  .catch(()=>{document.getElementById('kpis').innerHTML='<div class="card muted">data/cases.json을 불러오지 못했어요. GitHub Pages나 로컬 서버(예: VS Code Live Server)로 열어 주세요. "직접 입력한 테스트 사례"는 그대로 쓸 수 있어요.</div>';});
+</script>
+</body>
+</html>
