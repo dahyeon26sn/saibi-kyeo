@@ -237,7 +237,7 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
 .adminrow .acts button{flex:1;height:40px;border-radius:10px;font-weight:600;font-size:14px}
 /* 실제 지도 (Leaflet) */
 .lmap{position:absolute;inset:0;z-index:0;background:#E7EEEC}
-.has-leaflet #map-svg,.has-leaflet #pick-svg,.has-leaflet .zoom{display:none}
+.has-leaflet #map-svg,.has-leaflet .pickmap > svg#pick-svg,.has-leaflet .zoom{display:none} /* 그림 지도가 실제 지도를 덮어 드래그를 막지 않도록 */
 .search,.locbtn,.pick-top,.cpin,.cshadow,.mapbadge{z-index:500}
 .leaflet-container{font:inherit}
 .cnt{width:34px;height:34px;border-radius:17px;background:var(--red);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25)}
@@ -640,9 +640,10 @@ const SAMPLE_REPORTS=[
   {id:'s7',area:'yuseong',lat:36.3539,lng:127.3418,method:2,time:3,spot:'유성온천역 3번 출구',memo:'(예시) 길을 묻더니 같은 방향이라며 따라옴',ago:160*H},
   {id:'s8',area:'bongmyeong',lat:36.3556,lng:127.3478,method:5,time:2,spot:'봉명동 먹자골목',memo:'(예시) 봉사 동아리라며 소속을 밝히지 않음',ago:200*H}
 ];
-const SAMPLE_NEWS=[
-  {id:'sn1',title:'캠퍼스 파고든 사이비 포교, 학생 92.6% 대처법 몰라',source:'서울과기대신문',ago:4*24*H},
-  {id:'sn2',title:'"나도 당했다" 피해 속출… 2030 직장인들 난리 난 이유',source:'한국경제',ago:90*24*H}
+const SAMPLE_NEWS=[ // 예방 소식 예시: 누르면 원문 기사로 이동
+  {id:'sn1',title:'캠퍼스 파고든 사이비 포교, 학생 92.6% 대처법 몰라',source:'서울과기대신문 718호',url:'',ago:Date.now()-Date.parse('2026-11-01T09:00:00+09:00')},
+  {id:'sn3',title:'대학가를 파고드는 불청객, 사이비',source:'서울과기대신문 702호',url:'https://times.seoultech.ac.kr/reports/?category=82&idx=21992',ago:Date.now()-Date.parse('2026-01-16T09:00:00+09:00')},
+  {id:'sn2',title:'"나도 당했다" 피해 속출… 2030 직장인들 난리 난 이유',source:'한국경제',url:'https://www.hankyung.com/article/2025081133647',ago:Date.now()-Date.parse('2025-08-11T09:00:00+09:00')}
 ];
 
 /* ===================== 공통 ===================== */
@@ -739,6 +740,11 @@ async function initStore(){
     if(!ls.get('seeded',false)){const now=Date.now();
       localSave('approved',[...localCol('approved'),...SAMPLE_REPORTS.map(({ago,...r})=>({...r,sample:true,createdAt:now-ago}))]);
       localSave('news',[...localCol('news'),...SAMPLE_NEWS.map(({ago,...n})=>({...n,createdAt:now-ago}))]);ls.set('seeded',true);}
+    { // 예시 소식 링크 보정: 이미 예시가 저장된 기기에도 링크·새 기사 반영
+      const cur=localCol('news');let ch=false;
+      SAMPLE_NEWS.forEach(({ago,...n})=>{const x=cur.find(c=>c.id===n.id);
+        if(x){if(n.url&&x.url!==n.url){x.url=n.url;ch=true;}}else{cur.push({...n,createdAt:Date.now()-ago});ch=true;}});
+      if(ch)localSave('news',cur);}
     refreshLocal();}
   renderMenu();renderAll();
 }
