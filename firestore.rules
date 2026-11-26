@@ -1,0 +1,87 @@
+rules_version = '2';
+// 사이비켜 Firestore 보안 규칙
+// Firebase 콘솔 → Firestore Database → 규칙 탭에 전체를 붙여 넣고 [게시]를 누르세요.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function str(v, max) { return v is string && v.size() <= max; }
+    function now() { return request.resource.data.createdAt is int; }
+
+    // 관리자 목록: 콘솔에서만 추가. 앱에서는 자기 문서가 있는지만 확인
+    match /admins/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
+    // 승인 대기 제보: 누구나 올릴 수 있고, 관리자만 보고 지울 수 있음
+    match /reports/{id} {
+      allow create: if signedIn() && now()
+        && request.resource.data.keys().hasOnly(['area','lat','lng','x','y','method','time','spot','memo','createdAt'])
+        && str(request.resource.data.spot, 60) && str(request.resource.data.memo, 500);
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
+
+    // 지도에 공개된 제보: 누구나 보기, 관리자만 게시·삭제
+    match /approved/{id} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if false;
+    }
+
+    // 예방 소식: 누구나 보기, 관리자만 등록·삭제
+    match /news/{id} {
+      allow read: if true;
+      allow create: if isAdmin() && str(request.resource.data.title, 120) && str(request.resource.data.source, 40);
+      allow delete: if isAdmin();
+      allow update: if false;
+    }
+
+    // 커뮤니티 글: 누구나 보기, 내 이름(익명 ID)으로만 쓰기, 글쓴이와 관리자만 삭제
+    match /posts/{id} {
+      allow read: if true;
+      allow create: if signedIn() && now()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['cat','title','body','authorId','createdAt'])
+        && str(request.resource.data.title, 60) && str(request.resource.data.body, 2000);
+      allow delete: if signedIn() && (resource.data.authorId == request.auth.uid || isAdmin());
+      allow update: if false;
+    }
+
+    // 댓글: 댓글 쓴 사람, 그 글의 글쓴이(글 삭제 시), 관리자만 삭제
+    match /comments/{id} {
+      allow read: if true;
+      allow create: if signedIn() && now()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['postId','text','authorId','createdAt'])
+        && str(request.resource.data.text, 500)
+        && exists(/databases/$(database)/documents/posts/$(request.resource.data.postId));
+      allow delete: if signedIn() && (
+        resource.data.authorId == request.auth.uid || isAdmin()
+        || !exists(/databases/$(database)/documents/posts/$(resource.data.postId))
+        || get(/databases/$(database)/documents/posts/$(resource.data.postId)).data.authorId == request.auth.uid);
+      allow update: if false;
+    }
+
+    // 공감: 한 사람이 한 글에 한 번 (문서 ID = 글ID_내ID)
+    match /likes/{id} {
+      allow read: if true;
+      allow create: if signedIn() && now()
+        && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.postId + '_' + request.auth.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    // 신고: 누구나 신고, 관리자만 보고 처리
+    match /flags/{id} {
+      allow create: if signedIn() && now() && str(request.resource.data.title, 60);
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
+  }
+}

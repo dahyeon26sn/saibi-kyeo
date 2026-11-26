@@ -2,14 +2,26 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="사이비켜">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
 <title>사이비켜</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="js/judge.js"></script>
+<script src="js/heresy.js"></script>
+<script src="js/firebase-config.js"></script>
 <style>
 :root{
   --main:#0F7B6C; --main-soft:#E3F2EF; --main-deep:#0A5A4F;
@@ -100,6 +112,17 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
 .news > :first-child{border-top:none}
 .news b{display:block;font-weight:600}
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tiles.two{grid-template-columns:1fr 1fr;gap:12px}
+.tiles.two .tile{padding:16px;gap:10px;text-decoration:none;color:inherit}
+.tiles.two .tile b{font-size:16px}
+.tiles.two .tile .muted{font-size:13px}
+.pill.urgent{background:var(--red);color:#fff}
+.group{background:var(--surf);border-radius:16px;overflow:hidden}
+.group.dashed{background:none;border:1.5px dashed #C9D3D1}
+.group .row{background:none;border-radius:0;text-decoration:none;color:inherit;padding:14px 16px}
+.group .row+.row{border-top:1px solid var(--line)}
+.group .row .rt.off{color:var(--mute)}
+.group .row .rt{font-size:13px;font-weight:600;color:var(--main);margin-right:2px}
 .tile{background:var(--surf);border-radius:18px;padding:14px 12px;text-align:left;display:flex;flex-direction:column;gap:8px;min-width:0}
 .tile .tophead{display:flex;align-items:center;justify-content:space-between;gap:4px}
 .tile .ic{width:44px;height:44px;border-radius:22px;display:grid;place-items:center}
@@ -166,25 +189,68 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
 .locline{display:flex;align-items:center;gap:10px}
 .locline .t{flex:1}
 .locline b{display:block;font-size:15px}
-/* 가짜 전화 */
-.call{position:fixed;inset:0;z-index:60;background:linear-gradient(180deg,#2C3757,#121827);color:#fff;display:none;flex-direction:column;align-items:center;padding:14px 28px 60px}
-.call.on{display:flex}
-.call .status{width:100%;max-width:400px;display:flex;justify-content:space-between;font-weight:600;padding:0 8px}
-.call .who{margin-top:90px;display:flex;flex-direction:column;align-items:center;gap:10px}
-.call .av{width:112px;height:112px;border-radius:56px;background:#3A4566;display:grid;place-items:center;font-size:44px}
-.ringing .av{animation:pulse 1.2s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.35)}100%{box-shadow:0 0 0 28px rgba(255,255,255,0)}}
-.call .name{font-size:34px;font-weight:500}
-.call .sub2{color:#AEB6C8}
+/* 가짜 전화: 아이폰 / 갤럭시 실제 화면 */
+.call{position:fixed;inset:0;z-index:60;display:none;color:#fff;font-family:-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;-webkit-user-select:none;user-select:none;line-height:1.2}
+.call.on{display:block}
+.call button{color:#fff;background:none;border:none;font:inherit}
+.call .sk{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden}
+.call[data-skin=ios] .ios,.call[data-skin=galaxy] .gx{display:flex}
 .call .grow{flex:1}
-.call .small,.call .big{width:100%;max-width:340px;display:flex;justify-content:space-between}
-.call .small{margin-bottom:36px}
-.call .small button{color:#fff;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;width:84px}
-.call .big > div{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:14px}
-.cbtn{width:76px;height:76px;border-radius:38px;display:grid;place-items:center}
-.cbtn svg{width:34px;height:34px}
-.script{background:rgba(255,255,255,.08);border-radius:16px;padding:16px 18px;max-width:320px;margin-top:30px;display:none}
-.script p{margin-bottom:6px}
+.call.talking .ios-ring,.call.talking .gx-ring,.call:not(.talking) .ios-talk,.call:not(.talking) .gx-talk{display:none}
+.call .g3{display:grid;grid-template-columns:repeat(3,1fr);padding:0 3.6%;width:100%}
+.call .c1{grid-column:1}.call .c3{grid-column:3}
+/* 아이폰 */
+.ios{background:linear-gradient(#757984,#737680 55%,#6F727C);padding:calc(env(safe-area-inset-top,0px) + 54px) 0 max(52px,calc(env(safe-area-inset-bottom,0px) + 18px))}
+.call.talking .ios{background:linear-gradient(#747885,#6C6F7B 50%,#5D606A 62%,#50535D)}
+.ios-head{display:flex;align-items:center;gap:12px;padding:0 36px;margin-top:49px}
+.ios-av{width:60px;height:60px;border-radius:50%;background:linear-gradient(#AAAEB7,#7F838D);display:grid;place-items:center;flex:none}
+.ios-timer{display:none;font-size:22px;font-weight:600;opacity:.55;font-variant-numeric:tabular-nums;margin-bottom:2px}
+.call.talking .ios-timer{display:block}
+.ios-name{font-size:38px;font-weight:700;letter-spacing:-.5px}
+.call.talking .ios-name{font-size:34px}
+.ib{display:flex;flex-direction:column;align-items:center;justify-self:center;padding:0}
+.ib i{display:grid;place-items:center;border-radius:50%;color:#fff;transition:background .15s}
+.ib span{font-size:17px;opacity:.95;white-space:nowrap;margin-top:6px}
+.ib.s i{width:44px;height:44px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.45)}
+.ib.L i{width:77px;height:77px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.28)}
+.ib.L span{font-size:16px}
+.ios-ring .row2{margin-top:43px}
+.ios-talk .row2{margin-top:18px}
+.ib.red i{background:#C43E3A;border-color:rgba(240,138,133,.8)}
+.ib.green i{background:#4EA152;border-color:rgba(142,224,143,.8)}
+.ib.end i{background:#CB2E25;border-color:rgba(255,138,128,.5)}
+.ib.on i{background:#fff;color:#3A3C42}
+/* 갤럭시 */
+.gx{background:linear-gradient(#7C7F87,#72757D 45%,#686A72);padding:calc(env(safe-area-inset-top,0px) + 40px) 0 max(14px,env(safe-area-inset-bottom,0px))}
+.gx::before{content:"";position:absolute;left:-50px;top:30px;width:240px;height:280px;border-radius:50%;background:rgba(150,154,164,.55);filter:blur(70px);pointer-events:none}
+.call.talking .gx{background:linear-gradient(#6A6C74,#5F6168 45%,#56585F)}
+.gx>*{position:relative}
+.gx-top{display:flex;justify-content:center;align-items:center;gap:6px;font-size:16px;font-weight:500;height:22px;margin-top:12px}
+.gx-top .hd{background:#fff;color:#6E7179;font-size:11px;font-weight:700;padding:0 3px;border-radius:3px;line-height:15px}
+.gx-state{font-weight:400;font-variant-numeric:tabular-nums}
+.gx-video{position:absolute;right:35px;top:0;display:none}
+.call.talking .gx-video{display:block}
+.gx-name{text-align:center;font-size:38px;font-weight:500;margin-top:40px;letter-spacing:-.5px;color:#F7F7F8}
+.gx-no{text-align:center;font-size:17px;margin-top:8px;color:#F7F7F8}
+.gx-av{width:88px;height:88px;border-radius:50%;margin:10px auto 0;background:linear-gradient(#FFC2AE,#F5A5A3);display:grid;place-items:center;flex:none}
+.gx-ring,.gx-talk{display:flex;flex-direction:column;align-items:center}
+.gx-last{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:16px;font-weight:500}
+.gx-pill{margin-top:46px;display:flex;align-items:center;gap:8px;padding:8px 20px;border-radius:20px;background:rgba(0,0,0,.22);font-size:17px;font-weight:700}
+.call .gxg{padding:0 8.75%}
+.gx-ring .gxg{margin-top:32px}
+.gb{justify-self:center;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.22)!important;display:grid;place-items:center}
+.gb i{width:68px;height:68px;border-radius:50%;display:grid;place-items:center}
+.gx-msg{margin-top:24px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:16px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.25)}
+.gx-msg .bar{width:80px;height:3px;border-radius:2px;background:#fff}
+.gx-talk{padding-bottom:44px}
+.gx-ai{align-self:flex-end;margin-right:calc(22.5% - 21px);width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.22);display:grid;place-items:center}
+.gx-talk .gxg{margin-top:17px}
+.gx-talk .gxg.row2{margin-top:14px}
+.gq{justify-self:center;display:flex;flex-direction:column;align-items:center;padding:0}
+.gq i{width:65px;height:65px;border-radius:26px;background:rgba(0,0,0,.2);display:grid;place-items:center;color:#fff;transition:background .15s}
+.gq span{font-size:15px;margin-top:8px;white-space:nowrap}
+.gq.on i{background:#fff;color:#4A4C52}
+.gx-end{margin-top:32px;width:68px;height:68px;border-radius:50%;background:#D9433A!important;display:grid;place-items:center}
 .countdown{background:var(--amber-soft);border-radius:14px;padding:14px 16px;display:none;align-items:center;justify-content:space-between}
 .countdown.on{display:flex}
 .countdown b{font-size:22px}
@@ -262,6 +328,17 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
 .meter span.on.판단{background:var(--ink);color:#fff}
 .followq{background:var(--amber-soft);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* 홈 화면에 추가(앱처럼 열기)했을 때 위·아래 시스템 영역 피하기 */
+:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}
+.top{height:calc(60px + var(--sat));padding-top:var(--sat)}
+.tabbar{height:calc(84px + var(--sab));padding-bottom:calc(16px + var(--sab))}
+.has-tab .body{padding-bottom:calc(104px + var(--sab))}
+.search{top:calc(16px + var(--sat))}
+.mapbadge{top:calc(76px + var(--sat))}
+#v-map .hz-bar{top:calc(72px + var(--sat))}
+.pick-top{top:calc(12px + var(--sat))}
+.pick-card{padding-bottom:calc(28px + var(--sab))}
+#v-main .news b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 </style>
 </head>
 <body>
@@ -269,51 +346,45 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
 
 <!-- 메인 -->
 <section class="view has-tab" id="v-main" aria-label="메인">
-  <header class="top">
-    <a class="ibtn" href="#menu" aria-label="메뉴"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></a>
-    <div class="logo">사이비켜</div>
-    <a class="ibtn" href="#my" aria-label="내 제보 내역"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></a>
-  </header>
-  <div class="body" style="gap:24px">
+  <header class="top"><div class="logo">사이비켜</div></header>
+  <div class="body" style="gap:28px">
     <div class="sec">
       <div class="sec-head"><h2>사이비 관련 소식</h2><span id="news-admin"></span></div>
 <div class="news" id="news-list"><div class="empty">소식을 불러오는 중이에요</div></div>
     </div>
     <div class="sec">
-      <div class="sec-head"><h2>빠른 실행</h2></div>
-      <div class="tiles">
-        <a class="tile" href="#alert">
-          <span class="tophead"><span class="ic" style="background:var(--safe-soft);color:var(--safe)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="pill" id="alert-pill"></span></span>
-          <b>위치 알림</b>
-          <span class="muted">위험 지역 근처에서 알려줘요</span>
-        </a>
+      <div class="sec-head"><h2>내 주변 최근 제보</h2></div>
+      <div id="recent" class="sec" style="gap:8px;cursor:pointer" title="누르면 지도에서 보여줘요"><div class="empty">제보를 불러오는 중이에요</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-head" style="flex-direction:column;align-items:flex-start;gap:2px"><h2>지금 포교 당하는 중이라면</h2><span class="muted" style="font-size:13px">누르면 바로 실행돼요</span></div>
+      <div class="tiles two">
         <a class="tile" href="#call">
-          <span class="tophead"><span class="ic" style="background:var(--red-soft);color:var(--red)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span></span>
+          <span class="tophead"><span class="ic" style="background:var(--red-soft);color:var(--red)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span><span class="pill urgent">긴급</span></span>
           <b>가짜 전화</b>
-          <span class="muted">전화 온 척 자리 벗어나기</span>
+          <span class="muted">전화 온 척 자연스럽게 자리 뜨기</span>
         </a>
-        <a class="tile" href="#quiz">
-          <span class="tophead"><span class="ic" style="background:#E8EBF7;color:#2F3E8F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17h.01"/></svg></span></span>
-          <b>퀴즈</b>
-          <span class="muted">포교 패턴 대처법 익히기</span>
+        <a class="tile" href="#ai">
+          <span class="tophead"><span class="ic" style="background:var(--main-soft);color:var(--main)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span></span>
+          <b>AI 포교 판별</b>
+          <span class="muted">상황을 적으면 의심도를 알려줘요</span>
         </a>
       </div>
     </div>
     <div class="sec">
-      <div class="sec-head"><h2>최근 제보</h2><a class="link" href="#map">지도에서 보기</a></div>
-      <div id="recent" class="sec" style="gap:8px"><div class="empty">제보를 불러오는 중이에요</div></div>
-    </div>
-    <div class="sec">
-      <div class="sec-head"><h2>커뮤니티 최근 글</h2><a class="link" href="#community">전체 보기</a></div>
-      <div id="home-posts" class="sec" style="gap:8px"></div>
+      <div class="sec-head"><h2>알아보기</h2></div>
+      <div class="group">
+        <a class="row" href="#quiz"><span class="t"><b>포교 패턴 퀴즈</b><span>상황별 퀴즈로 대처법 익히기</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
+        <a class="row" href="#article-tactics"><span class="t"><b>포교 수법 총정리</b><span>자주 쓰이는 접근 방법 8가지</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- 메뉴 -->
-<section class="view" id="v-menu" aria-label="메뉴">
-  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>메뉴</h1></header>
-  <div class="body" style="gap:10px" id="menu-list"></div>
+<section class="view has-tab" id="v-mypage" aria-label="마이">
+  <header class="top" style="padding-left:20px"><h1 style="font-size:20px">마이</h1></header>
+  <div class="body" style="gap:28px" id="mypage-list"></div>
 </section>
 
 <!-- 퀴즈 -->
@@ -349,11 +420,13 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
       <input class="input" id="custom-caller" maxlength="12" placeholder="직접 입력 (예: 조장 민지)" style="display:none"></div>
     <div class="field"><span class="lab">언제 울릴까요?</span><div class="chips" data-group="delay"></div></div>
     <div class="field"><span class="lab">어떻게 울릴까요?</span><div class="chips" data-group="mode"></div></div>
+    <div class="field"><span class="lab">어떤 폰 화면으로 보여줄까요?</span><div class="chips" data-group="skin"></div><span class="hint">자동은 접속한 폰에 맞춰요. 아이폰이면 아이폰 화면, 갤럭시면 갤럭시 화면이 나와요.</span></div>
     <div style="flex:1"></div>
     <div class="countdown" id="countdown" role="status"><span><b id="cd-num">10</b> 초 뒤에 울려요</span><button class="chip" id="cd-cancel">취소</button></div>
     <div class="sec">
       <button class="btn amber" id="call-start">가짜 전화 예약하기</button>
       <div class="note" style="justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>예약한 시간이 되면 실제 전화처럼 울려요</div>
+      <p class="hint" style="text-align:center">받은 뒤엔 "아 지금? 알겠어, 바로 갈게!" 하고 자리를 떠나세요</p>
     </div>
     <hr style="border:none;border-top:1px solid var(--line)">
     <div class="sec"><p class="muted" style="text-align:center">지금 바로 자리를 벗어나야 한다면</p><button class="btn danger" id="call-now">긴급 전화 (바로 울리기)</button></div>
@@ -433,8 +506,8 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
 </section>
 
 <!-- 기타 정보 -->
-<section class="view" id="v-info" aria-label="기타 정보">
-  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>기타 정보</h1></header>
+<section class="view" id="v-info" aria-label="도움받을 곳">
+  <header class="top"><button class="ibtn back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1>도움받을 곳</h1></header>
   <div class="body" style="gap:12px">
     <div class="sec"><div class="sec-head"><h2>자문 채널</h2></div><p class="muted">혼자 고민하지 말고 도움을 받을 수 있는 곳에 이야기해 보세요</p>
       <div class="row"><span class="dot red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span><span class="t"><b>경찰 112</b><span>따라오거나 위협을 느낄 때 바로 신고</span></span></div>
@@ -446,11 +519,7 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
       <div class="chips" data-group="region"></div>
       <div class="sec" id="channel-list" style="gap:8px"></div>
     </div>
-    <div class="sec" style="margin-top:12px"><div class="sec-head"><h2>추가 정보</h2></div>
-      <a class="row" href="#article-tactics" style="text-decoration:none;color:inherit"><span class="dot"></span><span class="t"><b>포교 수법 총정리</b><span>자주 쓰이는 접근 방법 8가지</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
-      <a class="row" href="#article-contact" style="text-decoration:none;color:inherit"><span class="dot"></span><span class="t"><b>이미 연락처를 줬다면</b><span>차단하고 대처하는 방법</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
-      <a class="row" href="#article-family" style="text-decoration:none;color:inherit"><span class="dot"></span><span class="t"><b>가족·친구가 빠졌다면</b><span>대화할 때 주의할 점</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
-    </div>
+    
   </div>
 </section>
 
@@ -544,23 +613,73 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
   <a href="#map" data-tab="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>지도</a>
   <a href="#report" class="fab" data-tab="report"><span class="c"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>제보</a>
   <a href="#community" data-tab="community"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4h12a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-7l-5 4v-4a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/><path d="M8 10.5h.01M12 10.5h.01M16 10.5h.01" stroke-linecap="round" stroke-width="2.6"/></svg>커뮤니티</a>
-  <a href="#ai" data-tab="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg>AI 판별</a>
+  <a href="#mypage" data-tab="mypage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>마이</a>
 </nav>
 </div>
 
-<!-- 전화 수신 -->
-<div class="call" id="call" role="dialog" aria-label="수신 전화">
-  <div class="status"><span id="clock">9:41</span><span>●●● ▮</span></div>
-  <div class="who"><div class="av" id="call-av">👩</div><div class="name" id="call-name">엄마</div><div class="sub2" id="call-sub">휴대전화</div></div>
-  <div class="script" id="call-script"><p class="hint" style="color:#AEB6C8">이렇게 말하면서 자리를 떠나세요</p><p id="line1"></p><p>"아 지금? 알겠어, 바로 갈게!"</p></div>
-  <div class="grow"></div>
-  <div class="small" id="call-small">
-    <button id="call-later"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M5 4L3 6M19 4l2 2"/></svg>나중에 알림</button>
-    <button id="call-msg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>메시지</button>
+<!-- 전화 수신 (아이폰 / 갤럭시 화면) -->
+<div class="call" id="call" role="dialog" aria-label="수신 전화" data-skin="ios">
+  <!-- 아이폰 -->
+  <div class="sk ios">
+    <div class="ios-head">
+      <div class="ios-av"><svg width="34" height="34" viewBox="0 0 24 24"><circle cx="12" cy="9" r="4.2" fill="#fff"/><path d="M3.5 21c.8-4.5 4.4-7 8.5-7s7.7 2.5 8.5 7z" fill="#fff"/></svg></div>
+      <div class="ios-txt"><div class="ios-timer" data-timer>00:00</div><div class="ios-name" data-name>엄마</div></div>
+    </div>
+    <div class="grow"></div>
+    <div class="ios-ring">
+      <div class="g3">
+        <button class="ib s c1" data-act="msg"><i><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 4.5c5 0 9 3.1 9 7s-4 7-9 7c-1 0-2-.1-2.9-.4L5 19.8l1.2-3.4C4.2 15.1 3 13.4 3 11.5c0-3.9 4-7 9-7z" fill="#fff"/></svg></i><span>메시지 보내기</span></button>
+        <button class="ib s c3" data-act="later"><i><svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5" fill="#fff"/><path d="M12 9.2V13l-2.6 1.6" stroke="#7B7E88" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M3.5 6.5l3-2.5M20.5 6.5l-3-2.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></i><span>나중에 알림</span></button>
+      </div>
+      <div class="g3 row2">
+        <button class="ib L c1 red" data-act="decline" aria-label="거절"><i><svg width="36" height="36" viewBox="0 0 24 24"><path fill="#fff" d="M2.2 13.6c5.4-4.3 14.2-4.3 19.6 0 .5.4.6 1.2.1 1.7l-1.5 1.6c-.4.4-1.1.5-1.6.1l-1.9-1.4c-.4-.3-.6-.8-.5-1.3l.2-1.2c-2.9-1-6.3-1-9.2 0l.2 1.2c.1.5-.1 1-.5 1.3l-1.9 1.4c-.5.4-1.2.3-1.6-.1l-1.5-1.6c-.5-.5-.4-1.3.1-1.7z"/></svg></i><span>거절</span></button>
+        <button class="ib L c3 green" data-act="accept" aria-label="응답"><i><svg width="36" height="36" viewBox="0 0 24 24"><path fill="#fff" d="M6.6 2.8c.6-.4 1.4-.3 1.8.3l2.2 3.2c.4.6.3 1.3-.2 1.8l-1.5 1.3c.9 2 2.5 3.6 4.5 4.6l1.3-1.5c.5-.5 1.2-.6 1.8-.2l3.2 2.2c.6.4.7 1.2.3 1.8l-1.2 1.8c-.7 1-1.9 1.5-3.1 1.2C9.9 18.2 5.8 14.1 4.6 8.4c-.3-1.2.2-2.4 1.2-3.1z"/></svg></i><span>응답</span></button>
+      </div>
+    </div>
+    <div class="ios-talk">
+      <div class="g3">
+        <button class="ib L" data-toggle><i><svg width="34" height="34" viewBox="0 0 24 24"><path fill="currentColor" d="M3.5 9h3.2L12 4.6v14.8L6.7 15H3.5z"/><path d="M15.3 9.2a4 4 0 0 1 0 5.6M18 6.6a7.6 7.6 0 0 1 0 10.8" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round"/></svg></i><span>스피커</span></button>
+        <button class="ib L"><i><svg width="34" height="34" viewBox="0 0 24 24"><rect x="1.5" y="6" width="14" height="12" rx="3" fill="#C9CACF"/><path d="M17 10.6l5-3.1v9l-5-3.1z" fill="#C9CACF"/><path d="M6.8 10.4a1.7 1.7 0 1 1 2.4 1.6c-.5.2-.7.6-.7 1.1v.3" stroke="#6E717B" stroke-width="1.5" fill="none" stroke-linecap="round"/><circle cx="8.5" cy="15.3" r=".9" fill="#6E717B"/></svg></i><span>FaceTime</span></button>
+        <button class="ib L" data-toggle><i><svg width="30" height="30" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"><rect x="9" y="3" width="6" height="11.5" rx="3"/><path d="M5.8 11.2a6.2 6.2 0 0 0 12.4 0M12 17.5v3.3M8.6 20.8h6.8M4.5 4.2l15 15"/></svg></i><span>소리 끔</span></button>
+      </div>
+      <div class="g3 row2">
+        <button class="ib L"><i><svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><circle cx="5.5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="18.5" cy="12" r="1.9"/></svg></i><span>더 보기</span></button>
+        <button class="ib L end" data-act="end" aria-label="통화 종료"><i><svg width="34" height="34" viewBox="0 0 24 24"><path fill="#fff" d="M2.2 13.6c5.4-4.3 14.2-4.3 19.6 0 .5.4.6 1.2.1 1.7l-1.5 1.6c-.4.4-1.1.5-1.6.1l-1.9-1.4c-.4-.3-.6-.8-.5-1.3l.2-1.2c-2.9-1-6.3-1-9.2 0l.2 1.2c.1.5-.1 1-.5 1.3l-1.9 1.4c-.5.4-1.2.3-1.6-.1l-1.5-1.6c-.5-.5-.4-1.3.1-1.7z"/></svg></i><span>종료</span></button>
+        <button class="ib L"><i><svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><circle cx="6" cy="6" r="2.4"/><circle cx="12" cy="6" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="12" cy="12" r="2.4"/><circle cx="18" cy="12" r="2.4"/><circle cx="6" cy="18" r="2.4"/><circle cx="12" cy="18" r="2.4"/><circle cx="18" cy="18" r="2.4"/></svg></i><span>키패드</span></button>
+      </div>
+    </div>
   </div>
-  <div class="big">
-    <div><button class="cbtn" id="call-decline" style="background:#E5484D" aria-label="거절"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M3 14.5c5-4.5 13-4.5 18 0l-2.2 2.8-3.3-1.2v-2.6a11 11 0 0 0-7 0v2.6l-3.3 1.2z"/></svg></button><span id="decline-lab">거절</span></div>
-    <div id="accept-wrap"><button class="cbtn" id="call-accept" style="background:#30A46C" aria-label="받기"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></button>받기</div>
+  <!-- 갤럭시 -->
+  <div class="sk gx">
+    <div class="gx-top"><span class="hd">HD</span><span>Voice</span><span class="gx-state" data-gxstate>수신전화</span>
+      <svg class="gx-video" width="22" height="22" viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2.5" fill="#B4B6BC"/><path d="M17.5 10.5l4.5-3v9l-4.5-3z" fill="#B4B6BC"/></svg></div>
+    <div class="gx-name" data-name>엄마</div>
+    <div class="gx-no">폰&nbsp;&nbsp;<span data-no>010-1234-5678</span></div>
+    <div class="gx-av"><svg width="46" height="46" viewBox="0 0 24 24"><circle cx="12" cy="9" r="4" fill="#fff"/><path d="M4 20.5c.9-4.2 4.2-6.5 8-6.5s7.1 2.3 8 6.5z" fill="#fff"/></svg></div>
+    <div class="grow"></div>
+    <div class="gx-ring">
+      <div class="gx-last"><svg width="15" height="15" viewBox="0 0 24 24"><path fill="#fff" d="M6.6 2.8c.6-.4 1.4-.3 1.8.3l2.2 3.2c.4.6.3 1.3-.2 1.8l-1.5 1.3c.9 2 2.5 3.6 4.5 4.6l1.3-1.5c.5-.5 1.2-.6 1.8-.2l3.2 2.2c.6.4.7 1.2.3 1.8l-1.2 1.8c-.7 1-1.9 1.5-3.1 1.2C9.9 18.2 5.8 14.1 4.6 8.4c-.3-1.2.2-2.4 1.2-3.1z"/></svg><span data-last>마지막 통화: 오후 6:52</span></div>
+      <div class="gx-pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M10 5l1.7 4.6L16.3 11.3 11.7 13l-1.7 4.6L8.3 13 3.7 11.3 8.3 9.6z"/><path d="M18 3l.7 1.8L20.5 5.5l-1.8.7L18 8l-.7-1.8L15.5 5.5l1.8-.7zM18.5 15.5l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z"/></svg>통화 어시스트</div>
+      <div class="g3 gxg">
+        <button class="gb c1" data-act="accept" aria-label="받기"><i style="background:#18AA62"><svg width="30" height="30" viewBox="0 0 24 24"><path fill="#fff" d="M6.6 2.8c.6-.4 1.4-.3 1.8.3l2.2 3.2c.4.6.3 1.3-.2 1.8l-1.5 1.3c.9 2 2.5 3.6 4.5 4.6l1.3-1.5c.5-.5 1.2-.6 1.8-.2l3.2 2.2c.6.4.7 1.2.3 1.8l-1.2 1.8c-.7 1-1.9 1.5-3.1 1.2C9.9 18.2 5.8 14.1 4.6 8.4c-.3-1.2.2-2.4 1.2-3.1z"/></svg></i></button>
+        <button class="gb c3" data-act="decline" aria-label="거절"><i style="background:#D9413A"><svg width="30" height="30" viewBox="0 0 24 24"><path fill="#fff" d="M2.2 13.6c5.4-4.3 14.2-4.3 19.6 0 .5.4.6 1.2.1 1.7l-1.5 1.6c-.4.4-1.1.5-1.6.1l-1.9-1.4c-.4-.3-.6-.8-.5-1.3l.2-1.2c-2.9-1-6.3-1-9.2 0l.2 1.2c.1.5-.1 1-.5 1.3l-1.9 1.4c-.5.4-1.2.3-1.6-.1l-1.5-1.6c-.5-.5-.4-1.3.1-1.7z"/></svg></i></button>
+      </div>
+      <button class="gx-msg" data-act="msg"><span class="bar"></span>메시지 보내기</button>
+    </div>
+    <div class="gx-talk">
+      <span class="gx-ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M10 5l1.7 4.6L16.3 11.3 11.7 13l-1.7 4.6L8.3 13 3.7 11.3 8.3 9.6z"/><path d="M18 3l.7 1.8L20.5 5.5l-1.8.7L18 8l-.7-1.8L15.5 5.5l1.8-.7zM18.5 15.5l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z"/></svg></span>
+      <div class="g3 gxg">
+        <button class="gq" data-toggle><i><svg width="28" height="28" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" fill="none"><rect x="2.5" y="6" width="19" height="12" rx="3.5"/><circle cx="8.6" cy="12" r="2.3"/><circle cx="15.4" cy="12" r="2.3"/><path d="M8.6 14.3h6.8"/></svg></i><span>녹음</span></button>
+        <button class="gq" data-toggle><i><svg width="28" height="28" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.8 11a6.2 6.2 0 0 0 12.4 0M12 17.2v3.3M8 20.5h8M4.5 4l15 15"/></svg></i><span>내 소리 차단</span></button>
+        <button class="gq"><i><svg width="28" height="28" viewBox="0 0 24 24"><path d="M6.5 7.5l11 9L12 21V3l5.5 4.5-11 9" stroke="#fff" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></i><span>블루투스</span></button>
+      </div>
+      <div class="g3 gxg row2">
+        <button class="gq" data-toggle><i><svg width="28" height="28" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 9.2h3L11.5 5v14l-5-4.2h-3z"/><path d="M15 9.3a3.8 3.8 0 0 1 0 5.4M17.8 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></i><span>스피커</span></button>
+        <button class="gq"><i><svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><circle cx="7" cy="5" r="1.4"/><circle cx="12" cy="5" r="1.4"/><circle cx="17" cy="5" r="1.4"/><circle cx="7" cy="10" r="1.4"/><circle cx="12" cy="10" r="1.4"/><circle cx="17" cy="10" r="1.4"/><circle cx="7" cy="15" r="1.4"/><circle cx="12" cy="15" r="1.4"/><circle cx="17" cy="15" r="1.4"/><circle cx="12" cy="20" r="1.4"/></svg></i><span>키패드</span></button>
+        <button class="gq"><i><svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></i><span>더 보기</span></button>
+      </div>
+      <button class="gx-end" data-act="end" aria-label="통화 종료"><svg width="30" height="30" viewBox="0 0 24 24"><path fill="#fff" d="M2.2 13.6c5.4-4.3 14.2-4.3 19.6 0 .5.4.6 1.2.1 1.7l-1.5 1.6c-.4.4-1.1.5-1.6.1l-1.9-1.4c-.4-.3-.6-.8-.5-1.3l.2-1.2c-2.9-1-6.3-1-9.2 0l.2 1.2c.1.5-.1 1-.5 1.3l-1.9 1.4c-.5.4-1.2.3-1.6-.1l-1.5-1.6c-.5-.5-.4-1.3.1-1.7z"/></svg></button>
+    </div>
   </div>
 </div>
 
@@ -719,6 +838,35 @@ const SAMPLE_COMMENTS=[
   {id:'sc2',postId:'sp1',text:'댓글 감사해요. 다들 조심하세요!',authorId:'s2',ago:1*3600000},
   {id:'sc3',postId:'sp2',text:'단체 이름을 안 알려주면 안 가는 게 좋아요',authorId:'s5',ago:8*3600000}];
 const SAMPLE_LIKES=[['sp1','s3'],['sp1','s4'],['sp1','s5'],['sp2','s4'],['sp3','s2'],['sp3','s5']].map(([postId,uid])=>({id:postId+'_'+uid,postId,uid}));
+/* ===================== Firebase (서버 저장) =====================
+ * js/firebase-config.js 에 설정값이 있으면 Firebase에 저장해 모든 사용자가 같은 데이터를 봅니다.
+ * store.db 는 Firestore의 collection().doc().set() 방식과 같은 모양이라 나머지 코드는 그대로 씁니다.
+ */
+const FB_VER='10.14.1';
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('load '+src));document.head.appendChild(s);});}
+async function connectFirebase(cfg){
+  const base=`https://www.gstatic.com/firebasejs/${FB_VER}/`;
+  await loadScript(base+'firebase-app-compat.js');
+  await Promise.all([loadScript(base+'firebase-auth-compat.js'),loadScript(base+'firebase-firestore-compat.js')]);
+  const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg);
+  const auth=app.auth();
+  const cred=auth.currentUser?{user:auth.currentUser}:await auth.signInAnonymously(); // 회원가입 없이 기기마다 익명 ID 발급
+  const db=app.firestore();
+  const uid=cred.user.uid;
+  let isAdmin=false;
+  try{isAdmin=(await db.collection('admins').doc(uid).get()).exists;}catch(e){isAdmin=false;} // 관리자: admins 컬렉션에 내 ID 문서가 있으면
+  return {db,uid,isAdmin};
+}
+function showDeviceId(uid,isAdmin){ // 관리자 등록용 기기 ID 안내 (주소에 ?admin=1 을 붙였을 때만)
+  const box=document.createElement('div');
+  box.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:95;width:calc(100% - 32px);max-width:398px;background:var(--ink);color:#fff;border-radius:16px;padding:14px 16px;font-size:13px;display:flex;flex-direction:column;gap:8px;box-shadow:0 6px 20px rgba(0,0,0,.25)';
+  box.innerHTML=isAdmin?'<b style="font-size:14px">관리자로 접속했어요</b><span>메뉴의 관리자 화면에서 제보를 승인할 수 있어요.</span><button type="button" class="chip" style="align-self:flex-end;color:var(--ink)">닫기</button>'
+    :`<b style="font-size:14px">이 기기는 아직 관리자가 아니에요</b><span>Firebase 콘솔 → Firestore → <b>admins</b> 컬렉션에 아래 ID로 문서를 만들면 관리자가 돼요.</span><code style="background:rgba(255,255,255,.12);border-radius:8px;padding:8px;word-break:break-all;user-select:all">${esc(uid)}</code><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="chip" data-copy style="color:var(--ink)">ID 복사</button><button type="button" class="chip" style="color:var(--ink)">닫기</button></div>`;
+  box.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.copy!==undefined){try{await navigator.clipboard.writeText(uid);toast('복사했어요');}catch(err){toast('길게 눌러 직접 복사해 주세요');}return;}box.remove();});
+  document.body.appendChild(box);
+}
+
 async function initStore(){
   let db=null,user=null;
   try{[db,user]=await Promise.all([window.claude?claude.use('db'):null,window.claude?claude.use('user'):null]);}catch(e){}
@@ -726,6 +874,12 @@ async function initStore(){
   try{store.isAdmin=user?!!(await user.canEdit()):false;}catch(e){store.isAdmin=false;}
   try{store.uid=user?await user.id():null;}catch(e){store.uid=null;}
   try{const c=user?await user.can('data.write'):null;store.canWrite=c!==false;}catch(e){}
+  const cfg=window.FIREBASE_CONFIG;
+  if(!db&&!window.claude&&cfg&&cfg.apiKey){ // GitHub Pages 등: Firebase 서버에 저장
+    try{const fb=await connectFirebase(cfg);db=fb.db;store.uid=fb.uid;store.isAdmin=fb.isAdmin;store.fb=true;
+      if(/[?&]admin=1/.test(location.search))showDeviceId(fb.uid,fb.isAdmin);}
+    catch(e){console.error('Firebase 연결 실패',e);toast('서버에 연결하지 못해 이 기기에만 저장하는 모드로 열었어요');}
+  }
   if(db){store.db=db;subscribe('approved','approved','createdAt');subscribe('news','news','createdAt');
     subscribe('posts','posts','createdAt');subscribe('comments','comments','createdAt');subscribe('likes','likes','createdAt');
     if(store.isAdmin){subscribe('reports','pending','createdAt');subscribe('flags','flags','createdAt');}
@@ -747,14 +901,17 @@ async function initStore(){
       if(ch)localSave('news',cur);}
     refreshLocal();}
   renderMenu();renderAll();
+  if(location.hash==='#admin'&&!store.isAdmin)location.hash='#main';
 }
 
 /* ===================== 라우팅 ===================== */
-const TABS=['main','map','report','quiz','ai'];
+const TABS=['main','map','report','community','mypage'];
 let prevView=null;
 function route(){
   let h=(location.hash||'#main').slice(1);
   let view=h,arg=null;
+  if(h==='menu')h='mypage';
+  view=h;
   if(h.startsWith('article-')){view='article';arg=h.slice(8);}
   if(h.startsWith('post-')){view='post';arg=h.slice(5);}
   const el=$('#v-'+view)||$('#v-main');
@@ -765,7 +922,7 @@ function route(){
   el.classList.add('on',view==='menu'?'slide-left':'fade');
   $('#backdrop').classList.toggle('on',view==='menu');$('#backdrop').classList.remove('closing');
   const tabView=under||view;
-  $('#tabbar').style.display=['main','map','quiz','ai','community'].includes(tabView)?'grid':'none';
+  $('#tabbar').style.display=['main','map','community','mypage'].includes(tabView)?'grid':'none';
   document.querySelectorAll('#tabbar a').forEach(a=>{a.dataset.tab===tabView?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current');});
   if(view==='menu'){prevView=under;window.__menuOpen=true;return;}
   window.__menuOpen=false;
@@ -777,7 +934,7 @@ function route(){
   if(view==='pick')openPicker();
   if(view==='report')renderLocBox();
   if(view==='map')onMapShown();
-  if(view==='admin'&&!store.isAdmin){location.hash='#main';return;}
+  if(view==='admin'&&store.ready&&!store.isAdmin){location.hash='#main';return;}
   prevView=view;window.scrollTo(0,0);
 }
 const navStack=[location.hash||'#main'];
@@ -804,11 +961,12 @@ function renderNews(){
     :'<div class="empty">아직 등록된 소식이 없어요</div>';
 }
 function reportRow(r,extra=''){return `<div class="row"><span class="dot red">${ICON.pin}</span><span class="t"><b>${esc(areaName(r.area))} · ${esc(METHODS[r.method]||'기타')}${r.sample?' <span class="pill" style="background:var(--line);color:var(--sub)">예시</span>':''}</b><span>${esc(r.spot||'')} · ${ago(r.createdAt)}</span></span>${extra}</div>`;}
+$('#recent').addEventListener('click',()=>{if(store.approved.length)location.hash='#map';});
 function renderRecent(){
   const el=$('#recent');
   if(!store.ready){return;}
   if(store.offline){el.innerHTML='<div class="empty">Claude에 로그인하면 최근 제보를 볼 수 있어요</div>';return;}
-  el.innerHTML=store.approved.length?store.approved.slice(0,2).map(r=>reportRow(r)).join(''):'<div class="empty">아직 게시된 제보가 없어요.<br>포교를 겪었다면 첫 제보를 남겨주세요.</div>';
+  el.innerHTML=store.approved.length?store.approved.slice(0,1).map(r=>reportRow(r)).join(''):'<div class="empty">아직 게시된 제보가 없어요.<br>포교를 겪었다면 첫 제보를 남겨주세요.</div>';
 }
 /* ===================== 실제 지도 (Leaflet + OpenStreetMap) ===================== */
 const HAS_L=!!window.L;
@@ -834,8 +992,9 @@ function ensureMap(){
   lmap=L.map('lmap',{zoomControl:false}).setView(DEFAULT_CENTER,15);
   L.tileLayer(TILE_URL,TILE_OPT).addTo(lmap);
   lmLayer=L.layerGroup().addTo(lmap);meLayer=L.layerGroup().addTo(lmap);
+  window.Heresy&&Heresy.attach(lmap,()=>userPos); // 이단 정보 레이어(별도 레이어, 제보 코드와 분리)
 }
-function onMapShown(){if(!HAS_L)return;ensureMap();setTimeout(()=>{lmap.invalidateSize();renderMap();drawMe();},60);}
+function onMapShown(){if(!HAS_L)return;ensureMap();setTimeout(()=>{lmap.invalidateSize();renderMap();drawMe();window.Heresy&&Heresy.onShow();},60);}
 function drawMe(){
   if(!lmap||!userPos)return;meLayer.clearLayers();
   L.circle(userPos,{radius:radiusM(),color:'#2F6FED',weight:1.5,fillOpacity:.07}).addTo(meLayer);
@@ -880,12 +1039,18 @@ $('#map-svg').addEventListener('click',e=>{const g=e.target.closest('.pin');if(!
 $('#map-svg').addEventListener('keydown',e=>{if(e.key==='Enter'){const g=e.target.closest('.pin');if(g){mapFilter=new Set([g.dataset.id]);renderMap();}}});
 $('#map-q').addEventListener('input',()=>renderMap());
 $('#map-all').onclick=()=>{if(mapFilter||$('#map-q').value){mapFilter=null;$('#map-q').value='';}else showAll=true;renderMap();};
-$('#loc-btn').onclick=()=>locate(p=>{showAll=false;drawMe();if(lmap)lmap.setView(p,16);renderMap();toast('현재 위치를 찾았어요');});
+$('#loc-btn').onclick=()=>locate(p=>{showAll=false;drawMe();if(lmap)lmap.setView(p,16);renderMap();window.Heresy&&Heresy.refresh();toast('현재 위치를 찾았어요');});
 
 function renderMenu(){
-  const items=[['#quiz','포교 패턴 퀴즈','상황별 퀴즈로 대처법 익히기'],['#info','기타 정보','자문 채널과 추가 정보'],['#alert','위치 알림 설정','제보 많은 곳 근처에서 알림 받기'],['#my','내 제보 내역','내가 올린 제보와 처리 상태'],['#community','커뮤니티','경험을 나누고 질문하기']];
-  if(store.isAdmin)items.push(['#admin','관리자','제보 승인, 소식 등록, 신고 처리']);
-  $('#menu-list').innerHTML=items.map(([h,t,d])=>`<a class="row" href="${h}" style="text-decoration:none;color:inherit"><span class="dot"></span><span class="t"><b>${t}</b><span>${d}</span></span>${ICON.chev}</a>`).join('');
+  const el=$('#mypage-list');if(!el)return;
+  const row=(h,t,d,right)=>`<a class="row" href="${h}"><span class="t"><b>${t}</b><span>${d}</span></span>${right?`<span class="rt${right==='꺼짐'?' off':''}">${right}</span>`:''}${ICON.chev}</a>`;
+  const grp=(title,rows,sub,dashed)=>`<div class="sec"><div class="sec-head"${sub?' style="flex-direction:column;align-items:flex-start;gap:2px"':''}><h2>${title}</h2>${sub?`<span class="muted" style="font-size:13px">${sub}</span>`:''}</div><div class="group${dashed?' dashed':''}">${rows.join('')}</div></div>`;
+  const mine=ls.get('mine',[]).length;const alOn=ls.get('alert',{on:false}).on;
+  let h=grp('내 활동',[row('#my','내 제보 내역','올린 제보와 처리 상태',mine?mine+'건':'')])
+   +grp('설정',[row('#alert','위치 알림','제보 많은 곳 근처에서 알려줘요',alOn?'켜짐':'꺼짐')])
+   +grp('도움이 필요할 때',[row('#info','도움받을 곳','경찰 112, 지역 이단 상담소, 학교 상담센터'),row('#article-contact','이미 연락처를 줬다면','차단하고 대처하는 방법'),row('#article-family','가족·친구가 빠졌다면','대화할 때 주의할 점')]);
+  if(store.isAdmin)h+=grp('관리자',[row('#admin','관리자 화면','제보 승인, 소식 등록, 신고 처리')],'관리자 계정으로 들어왔을 때만 보여요',true);
+  el.innerHTML=h;
 }
 function renderMy(){
   const mine=ls.get('mine',[]);const el=$('#my-list');
@@ -1147,33 +1312,49 @@ function unlockAudio(){try{audioCtx=audioCtx||new (window.AudioContext||window.w
 function caller(){const i=picked('caller');if(i===3){const n=$('#custom-caller').value.trim()||'친구';return {n,e:n[0]};}return CALLERS[i];}
 function beep(){if(!audioCtx)return;const t=audioCtx.currentTime;[0,.25].forEach(o=>{const os=audioCtx.createOscillator(),g=audioCtx.createGain();os.frequency.setValueAtTime(880,t+o);os.frequency.setValueAtTime(660,t+o+.1);g.gain.setValueAtTime(.0001,t+o);g.gain.exponentialRampToValueAtTime(.4,t+o+.02);g.gain.exponentialRampToValueAtTime(.0001,t+o+.2);os.connect(g).connect(audioCtx.destination);os.start(t+o);os.stop(t+o+.22);});}
 function buzz(p){try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
+function callSkin(){const i=ls.get('callSkin',0);if(i===1)return 'ios';if(i===2)return 'galaxy';return /Android/i.test(navigator.userAgent)?'galaxy':'ios';}
+function fakeNo(n){let h=7;for(const ch of n)h=(h*31+ch.charCodeAt(0))%100000000;const d=String(h).padStart(8,'0');return '010-'+(d.slice(0,4).replace(/^0/,'5'))+'-'+d.slice(4);}
+function lastCall(){const d=new Date(Date.now()-(60+Math.floor(Math.random()*240))*60000);const h=d.getHours(),m=String(d.getMinutes()).padStart(2,'0');return `마지막 통화: ${h<12?'오전':'오후'} ${h%12||12}:${m}`;}
+const metaTheme=document.querySelector('meta[name=theme-color]');let themeBefore=null;
+function setTheme(c){if(!metaTheme)return;if(c){themeBefore=themeBefore||metaTheme.content;metaTheme.content=c;}else if(themeBefore){metaTheme.content=themeBefore;themeBefore=null;}}
 function ring(){
-  const c=caller(),m=picked('mode');
-  $('#call-av').textContent=c.e;$('#call-name').textContent=c.n;$('#call-sub').textContent='휴대전화';
-  $('#call-script').style.display='none';$('#call-small').style.visibility='visible';$('#accept-wrap').style.visibility='visible';$('#decline-lab').textContent='거절';
-  const d=new Date();$('#clock').textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
-  const el=$('#call');el.classList.add('on','ringing');
+  const c=caller(),m=picked('mode'),el=$('#call');
+  el.dataset.skin=callSkin();
+  el.querySelectorAll('[data-name]').forEach(x=>x.textContent=c.n);
+  el.querySelectorAll('[data-no]').forEach(x=>x.textContent=fakeNo(c.n));
+  el.querySelectorAll('[data-last]').forEach(x=>x.textContent=lastCall());
+  el.querySelectorAll('[data-timer]').forEach(x=>x.textContent='00:00');
+  el.querySelectorAll('[data-gxstate]').forEach(x=>x.textContent='수신전화');
+  el.querySelectorAll('[data-toggle]').forEach(x=>x.classList.remove('on'));
+  el.classList.remove('talking');el.classList.add('on','ringing');
+  setTheme(el.dataset.skin==='galaxy'?'#7C7F87':'#757984');
   const tick=()=>{if(m!==1)beep();if(m!==0)buzz([600,400]);};tick();ringT=setInterval(tick,2000);
-  $('#call-decline').focus();
 }
 function stopRing(){clearInterval(ringT);buzz(0);$('#call').classList.remove('ringing');}
-function endCall(msg){stopRing();clearInterval(talkT);$('#call').classList.remove('on');if(msg)toast(msg);}
+function endCall(msg){stopRing();clearInterval(talkT);const el=$('#call');el.classList.remove('on','talking');setTheme(null);if(msg)toast(msg);}
+function acceptCall(){
+  stopRing();const el=$('#call');el.classList.add('talking');
+  let s=0;const fmt=()=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  const put=()=>{el.querySelectorAll('[data-timer],[data-gxstate]').forEach(x=>x.textContent=fmt());};put();
+  setTheme(el.dataset.skin==='galaxy'?'#6A6C74':'#747885');
+  clearInterval(talkT);talkT=setInterval(()=>{s++;put();},1000);
+}
 function schedule(sec){
   clearInterval(cdT);let left=sec;$('#cd-num').textContent=left;$('#countdown').classList.add('on');$('#call-start').disabled=true;
   cdT=setInterval(()=>{left--;$('#cd-num').textContent=left;if(left<=0){clearInterval(cdT);$('#countdown').classList.remove('on');$('#call-start').disabled=false;ring();}},1000);
 }
+chips('skin',['자동','아이폰','갤럭시'],ls.get('callSkin',0),i=>ls.set('callSkin',i));
 $('#call-start').onclick=()=>{unlockAudio();schedule(DELAYS[picked('delay')]);};
 $('#call-now').onclick=()=>{unlockAudio();ring();};
 $('#cd-cancel').onclick=()=>{clearInterval(cdT);$('#countdown').classList.remove('on');$('#call-start').disabled=false;toast('가짜 전화를 취소했어요');};
-$('#call-decline').onclick=()=>endCall();
-$('#call-later').onclick=()=>{endCall('1분 뒤에 다시 울려요');setTimeout(ring,60000);};
-$('#call-msg').onclick=()=>endCall('통화를 끊었어요');
-$('#call-accept').onclick=()=>{
-  stopRing();const c=caller();
-  $('#line1').textContent=`"어 ${['엄마','아빠'].includes(c.n)?c.n:'응'}, 왜?"`;
-  $('#call-script').style.display='block';$('#call-small').style.visibility='hidden';$('#accept-wrap').style.visibility='hidden';$('#decline-lab').textContent='통화 종료';
-  let s=0;$('#call-sub').textContent='00:00';talkT=setInterval(()=>{s++;$('#call-sub').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');},1000);
-};
+$('#call').addEventListener('click',e=>{
+  const t=e.target.closest('[data-toggle]');if(t){t.classList.toggle('on');return;}
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act;
+  if(a==='accept')acceptCall();
+  else if(a==='later'){endCall();setTimeout(ring,60000);}
+  else endCall();
+});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#call').classList.contains('on'))endCall();});
 
 /* ===================== 위치 알림 (실제 GPS) ===================== */
@@ -1182,7 +1363,7 @@ const alertCfg=ls.get('alert',{on:false,r:1,w:0});
 chips('radius',RADII,alertCfg.r,i=>{alertCfg.r=i;ls.set('alert',alertCfg);$('#notif-text').textContent=`근처 ${RADII[i]} 안에 포교 제보가 3건 있어요`;drawMe();renderMap();});
 chips('when',WHENS,alertCfg.w,i=>{alertCfg.w=i;ls.set('alert',alertCfg);});
 $('#notif-text').textContent=`근처 ${RADII[alertCfg.r]} 안에 포교 제보가 3건 있어요`;
-function renderAlertPill(){const p=$('#alert-pill');p.textContent=alertCfg.on?'켜짐':'꺼짐';p.className='pill '+(alertCfg.on?'safe':'');p.style.background=alertCfg.on?'':'var(--line)';p.style.color=alertCfg.on?'':'var(--sub)';$('#alert-switch').setAttribute('aria-checked',alertCfg.on);}
+function renderAlertPill(){renderMenu();const p=$('#alert-pill');if(p){p.textContent=alertCfg.on?'켜짐':'꺼짐';p.className='pill '+(alertCfg.on?'safe':'');p.style.background=alertCfg.on?'':'var(--line)';p.style.color=alertCfg.on?'':'var(--sub)';}$('#alert-switch').setAttribute('aria-checked',alertCfg.on);}
 function showBanner(t,s){$('#banner-text').textContent=t;$('#banner-sub').textContent=s;const b=$('#banner');b.classList.add('on');clearTimeout(b._h);b._h=setTimeout(()=>b.classList.remove('on'),4000);}
 let watchId=null;const alerted=new Map();
 function inWhen(){if(alertCfg.w!==1)return true;const h=new Date().getHours();return (h>=8&&h<10)||(h>=17&&h<19);}
@@ -1280,7 +1461,7 @@ function renderPost(){
    ${cs.length?cs.map(c=>{const isAuthor=c.authorId===p.authorId,cDel=(store.uid&&c.authorId===store.uid)||store.isAdmin;
      return `<div class="cmt"><div class="who">${isAuthor?'<span class="pill main">글쓴이</span>':'익명'+nums[c.authorId]}<span class="hint" style="font-weight:400">${ago(c.createdAt)}</span>${cDel?`<button type="button" class="del" data-cdel="${esc(c.id)}">삭제</button>`:''}</div><p>${esc(c.text)}</p></div>`;}).join(''):'<div class="empty" style="border-top:1px solid var(--line)">첫 댓글을 남겨주세요</div>'}</div>`;
 }
-function writeErr(e){toast(e&&e.code==='signed_out'?'Claude에 로그인해야 쓸 수 있어요':e&&e.code==='invalid_argument'?'이 계정은 글을 쓸 권한이 없어요. 관리자에게 편집 권한을 요청하세요':'저장하지 못했어요. 잠시 뒤 다시 시도해 주세요');}
+function writeErr(e){if(e&&e.code==='permission-denied'){toast('권한이 없어 저장하지 못했어요');return;}if(e&&e.code==='unavailable'){toast('인터넷 연결을 확인해 주세요');return;}toast(e&&e.code==='signed_out'?'Claude에 로그인해야 쓸 수 있어요':e&&e.code==='invalid_argument'?'이 계정은 글을 쓸 권한이 없어요. 관리자에게 편집 권한을 요청하세요':'저장하지 못했어요. 잠시 뒤 다시 시도해 주세요');}
 chips('pcat',['전체',...PCATS],0,i=>{pcatFilter=i;renderCommunity();});
 chips('wcat',PCATS,0);
 ['#w-title','#w-body'].forEach(x=>$(x).addEventListener('input',()=>$('#w-err').textContent=''));
