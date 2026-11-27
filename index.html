@@ -21,7 +21,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="js/judge.js"></script>
 <script src="js/heresy.js"></script>
-<script src="js/firebase-config.js"></script>
 <style>
 :root{
   --main:#0F7B6C; --main-soft:#E3F2EF; --main-deep:#0A5A4F;
@@ -282,7 +281,7 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
 .post .meta{display:flex;gap:12px;align-items:center;font-size:12px;color:var(--mute)}
 .post .meta span{display:flex;align-items:center;gap:4px}
 .post .meta svg{width:14px;height:14px}
-.writefab{position:fixed;bottom:100px;right:max(16px,calc(50% - 199px));z-index:21;background:var(--main);color:#fff;border-radius:999px;height:50px;padding:0 20px;display:flex;align-items:center;gap:6px;font-weight:700;box-shadow:0 4px 12px rgba(15,123,108,.35)}
+.writefab{position:fixed;bottom:calc(100px + var(--sab,0px));right:max(16px,calc(50% - 199px));z-index:21;background:var(--main);color:#fff;border-radius:999px;height:50px;padding:0 20px;display:flex;align-items:center;gap:6px;font-weight:700;box-shadow:0 4px 12px rgba(15,123,108,.35)}
 .writefab svg{width:20px;height:20px}
 .pbody{white-space:pre-wrap;line-height:1.7;font-size:15px}
 .acts2{display:flex;gap:8px}
@@ -339,6 +338,16 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
 .pick-top{top:calc(12px + var(--sat))}
 .pick-card{padding-bottom:calc(28px + var(--sab))}
 #v-main .news b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+/* 글쓰기 버튼에 마지막 글이 가리지 않게 */
+#v-community .body{padding-bottom:calc(170px + var(--sab))}
+/* 제보 내용은 카드 안에서 줄바꿈 */
+.row .t .rmemo{margin-top:4px;color:var(--ink);word-break:break-all;overflow-wrap:anywhere;white-space:pre-wrap}
+/* 지도 아래 목록: 손잡이를 끌어 올리면 넓어지고, 하단 탭에 가리지 않게 스크롤 */
+#v-map{height:100vh;height:100dvh;min-height:0}
+#v-map .mapwrap{min-height:120px}
+#v-map .sheet{flex:none;max-height:none;height:var(--sheet-h,40dvh);min-height:96px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(110px + var(--sab,0px))}
+#v-map .handle{position:sticky;top:-10px;width:calc(100% + 40px);height:28px;background:var(--bg);margin:-10px -20px -4px;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;flex:none;z-index:2;border-radius:22px 22px 0 0}
+#v-map .handle::before{content:"";width:40px;height:5px;border-radius:3px;background:var(--mute)}
 </style>
 </head>
 <body>
@@ -512,7 +521,6 @@ textarea.input{resize:vertical;min-height:96px;line-height:1.5}
     <div class="sec"><div class="sec-head"><h2>자문 채널</h2></div><p class="muted">혼자 고민하지 말고 도움을 받을 수 있는 곳에 이야기해 보세요</p>
       <div class="row"><span class="dot red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span><span class="t"><b>경찰 112</b><span>따라오거나 위협을 느낄 때 바로 신고</span></span></div>
       <div class="row"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></span><span class="t"><b>학교 학생상담센터</b><span>소속 학교 상담센터에 고민 상담</span></span></div>
-      <div class="row"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg></span><span class="t"><b>현대종교</b><span>이단 정보 확인과 자문 · 유튜브 채널, 월간 현대종교 발간</span></span></div>
     </div>
     <div class="sec" style="margin-top:12px"><div class="sec-head"><h2>지역별 이단 상담소</h2></div>
       <p class="muted">이단 문제로 상담이 필요할 때 지역 상담소에 연락해 보세요</p>
@@ -838,35 +846,6 @@ const SAMPLE_COMMENTS=[
   {id:'sc2',postId:'sp1',text:'댓글 감사해요. 다들 조심하세요!',authorId:'s2',ago:1*3600000},
   {id:'sc3',postId:'sp2',text:'단체 이름을 안 알려주면 안 가는 게 좋아요',authorId:'s5',ago:8*3600000}];
 const SAMPLE_LIKES=[['sp1','s3'],['sp1','s4'],['sp1','s5'],['sp2','s4'],['sp3','s2'],['sp3','s5']].map(([postId,uid])=>({id:postId+'_'+uid,postId,uid}));
-/* ===================== Firebase (서버 저장) =====================
- * js/firebase-config.js 에 설정값이 있으면 Firebase에 저장해 모든 사용자가 같은 데이터를 봅니다.
- * store.db 는 Firestore의 collection().doc().set() 방식과 같은 모양이라 나머지 코드는 그대로 씁니다.
- */
-const FB_VER='10.14.1';
-function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('load '+src));document.head.appendChild(s);});}
-async function connectFirebase(cfg){
-  const base=`https://www.gstatic.com/firebasejs/${FB_VER}/`;
-  await loadScript(base+'firebase-app-compat.js');
-  await Promise.all([loadScript(base+'firebase-auth-compat.js'),loadScript(base+'firebase-firestore-compat.js')]);
-  const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg);
-  const auth=app.auth();
-  const cred=auth.currentUser?{user:auth.currentUser}:await auth.signInAnonymously(); // 회원가입 없이 기기마다 익명 ID 발급
-  const db=app.firestore();
-  const uid=cred.user.uid;
-  let isAdmin=false;
-  try{isAdmin=(await db.collection('admins').doc(uid).get()).exists;}catch(e){isAdmin=false;} // 관리자: admins 컬렉션에 내 ID 문서가 있으면
-  return {db,uid,isAdmin};
-}
-function showDeviceId(uid,isAdmin){ // 관리자 등록용 기기 ID 안내 (주소에 ?admin=1 을 붙였을 때만)
-  const box=document.createElement('div');
-  box.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:95;width:calc(100% - 32px);max-width:398px;background:var(--ink);color:#fff;border-radius:16px;padding:14px 16px;font-size:13px;display:flex;flex-direction:column;gap:8px;box-shadow:0 6px 20px rgba(0,0,0,.25)';
-  box.innerHTML=isAdmin?'<b style="font-size:14px">관리자로 접속했어요</b><span>메뉴의 관리자 화면에서 제보를 승인할 수 있어요.</span><button type="button" class="chip" style="align-self:flex-end;color:var(--ink)">닫기</button>'
-    :`<b style="font-size:14px">이 기기는 아직 관리자가 아니에요</b><span>Firebase 콘솔 → Firestore → <b>admins</b> 컬렉션에 아래 ID로 문서를 만들면 관리자가 돼요.</span><code style="background:rgba(255,255,255,.12);border-radius:8px;padding:8px;word-break:break-all;user-select:all">${esc(uid)}</code><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="chip" data-copy style="color:var(--ink)">ID 복사</button><button type="button" class="chip" style="color:var(--ink)">닫기</button></div>`;
-  box.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
-    if(b.dataset.copy!==undefined){try{await navigator.clipboard.writeText(uid);toast('복사했어요');}catch(err){toast('길게 눌러 직접 복사해 주세요');}return;}box.remove();});
-  document.body.appendChild(box);
-}
-
 async function initStore(){
   let db=null,user=null;
   try{[db,user]=await Promise.all([window.claude?claude.use('db'):null,window.claude?claude.use('user'):null]);}catch(e){}
@@ -874,12 +853,6 @@ async function initStore(){
   try{store.isAdmin=user?!!(await user.canEdit()):false;}catch(e){store.isAdmin=false;}
   try{store.uid=user?await user.id():null;}catch(e){store.uid=null;}
   try{const c=user?await user.can('data.write'):null;store.canWrite=c!==false;}catch(e){}
-  const cfg=window.FIREBASE_CONFIG;
-  if(!db&&!window.claude&&cfg&&cfg.apiKey){ // GitHub Pages 등: Firebase 서버에 저장
-    try{const fb=await connectFirebase(cfg);db=fb.db;store.uid=fb.uid;store.isAdmin=fb.isAdmin;store.fb=true;
-      if(/[?&]admin=1/.test(location.search))showDeviceId(fb.uid,fb.isAdmin);}
-    catch(e){console.error('Firebase 연결 실패',e);toast('서버에 연결하지 못해 이 기기에만 저장하는 모드로 열었어요');}
-  }
   if(db){store.db=db;subscribe('approved','approved','createdAt');subscribe('news','news','createdAt');
     subscribe('posts','posts','createdAt');subscribe('comments','comments','createdAt');subscribe('likes','likes','createdAt');
     if(store.isAdmin){subscribe('reports','pending','createdAt');subscribe('flags','flags','createdAt');}
@@ -901,7 +874,6 @@ async function initStore(){
       if(ch)localSave('news',cur);}
     refreshLocal();}
   renderMenu();renderAll();
-  if(location.hash==='#admin'&&!store.isAdmin)location.hash='#main';
 }
 
 /* ===================== 라우팅 ===================== */
@@ -934,7 +906,7 @@ function route(){
   if(view==='pick')openPicker();
   if(view==='report')renderLocBox();
   if(view==='map')onMapShown();
-  if(view==='admin'&&store.ready&&!store.isAdmin){location.hash='#main';return;}
+  if(view==='admin'&&!store.isAdmin){location.hash='#main';return;}
   prevView=view;window.scrollTo(0,0);
 }
 const navStack=[location.hash||'#main'];
@@ -960,7 +932,7 @@ function renderNews(){
   el.innerHTML=list.length?list.map(n=>{const safe=/^https?:\/\//.test(n.url||'');return `<${safe?'a href="'+esc(n.url)+'" target="_blank" rel="noopener"':'div class="it"'}><b>${esc(n.title)}</b><span class="hint">${esc(n.source||'')}${n.source?' · ':''}${ago(n.createdAt)}</span></${safe?'a':'div'}>`;}).join('')
     :'<div class="empty">아직 등록된 소식이 없어요</div>';
 }
-function reportRow(r,extra=''){return `<div class="row"><span class="dot red">${ICON.pin}</span><span class="t"><b>${esc(areaName(r.area))} · ${esc(METHODS[r.method]||'기타')}${r.sample?' <span class="pill" style="background:var(--line);color:var(--sub)">예시</span>':''}</b><span>${esc(r.spot||'')} · ${ago(r.createdAt)}</span></span>${extra}</div>`;}
+function reportRow(r,extra='',memo=''){return `<div class="row"><span class="dot red">${ICON.pin}</span><span class="t"><b>${esc(areaName(r.area))} · ${esc(METHODS[r.method]||'기타')}${r.sample?' <span class="pill" style="background:var(--line);color:var(--sub)">예시</span>':''}</b><span>${esc(r.spot||'')} · ${ago(r.createdAt)}</span>${memo?`<span class="rmemo">${esc(memo)}</span>`:''}</span>${extra}</div>`;}
 $('#recent').addEventListener('click',()=>{if(store.approved.length)location.hash='#map';});
 function renderRecent(){
   const el=$('#recent');
@@ -1033,7 +1005,7 @@ function renderMap(){
   $('#map-title').textContent=title;
   const badge=$('#map-badge');if(userPos){const n=store.approved.filter(r=>distM(userPos,latlngOf(r))<=radiusM()).length;badge.textContent=`내 주변 ${RADII[alertCfg.r]} · 제보 ${n}건`;badge.classList.add('on');}
   $('#map-all').style.display=mapFilter||q||(userPos&&!showAll)?'block':'none';
-  $('#map-list').innerHTML=!store.ready?'<div class="empty">제보를 불러오는 중이에요</div>':(list.length?list.slice(0,30).map(({r,d})=>reportRow(r,d!=null?`<span class="dist">${fmtDist(d)}</span>`:'')+(r.memo?`<p class="muted" style="padding:0 16px 4px 70px;margin-top:-4px">${esc(r.memo)}</p>`:'')).join(''):`<div class="empty">${userPos&&!showAll?'내 주변에는 아직 제보가 없어요':'표시할 제보가 없어요'}</div>`);
+  $('#map-list').innerHTML=!store.ready?'<div class="empty">제보를 불러오는 중이에요</div>':(list.length?list.slice(0,30).map(({r,d})=>reportRow(r,d!=null?`<span class="dist">${fmtDist(d)}</span>`:'',r.memo)).join(''):`<div class="empty">${userPos&&!showAll?'내 주변에는 아직 제보가 없어요':'표시할 제보가 없어요'}</div>`);
 }
 $('#map-svg').addEventListener('click',e=>{const g=e.target.closest('.pin');if(!g)return;mapFilter=mapFilter&&mapFilter.has(g.dataset.id)?null:new Set([g.dataset.id]);renderMap();});
 $('#map-svg').addEventListener('keydown',e=>{if(e.key==='Enter'){const g=e.target.closest('.pin');if(g){mapFilter=new Set([g.dataset.id]);renderMap();}}});
@@ -1461,7 +1433,7 @@ function renderPost(){
    ${cs.length?cs.map(c=>{const isAuthor=c.authorId===p.authorId,cDel=(store.uid&&c.authorId===store.uid)||store.isAdmin;
      return `<div class="cmt"><div class="who">${isAuthor?'<span class="pill main">글쓴이</span>':'익명'+nums[c.authorId]}<span class="hint" style="font-weight:400">${ago(c.createdAt)}</span>${cDel?`<button type="button" class="del" data-cdel="${esc(c.id)}">삭제</button>`:''}</div><p>${esc(c.text)}</p></div>`;}).join(''):'<div class="empty" style="border-top:1px solid var(--line)">첫 댓글을 남겨주세요</div>'}</div>`;
 }
-function writeErr(e){if(e&&e.code==='permission-denied'){toast('권한이 없어 저장하지 못했어요');return;}if(e&&e.code==='unavailable'){toast('인터넷 연결을 확인해 주세요');return;}toast(e&&e.code==='signed_out'?'Claude에 로그인해야 쓸 수 있어요':e&&e.code==='invalid_argument'?'이 계정은 글을 쓸 권한이 없어요. 관리자에게 편집 권한을 요청하세요':'저장하지 못했어요. 잠시 뒤 다시 시도해 주세요');}
+function writeErr(e){toast(e&&e.code==='signed_out'?'Claude에 로그인해야 쓸 수 있어요':e&&e.code==='invalid_argument'?'이 계정은 글을 쓸 권한이 없어요. 관리자에게 편집 권한을 요청하세요':'저장하지 못했어요. 잠시 뒤 다시 시도해 주세요');}
 chips('pcat',['전체',...PCATS],0,i=>{pcatFilter=i;renderCommunity();});
 chips('wcat',PCATS,0);
 ['#w-title','#w-body'].forEach(x=>$(x).addEventListener('input',()=>$('#w-err').textContent=''));
@@ -1510,6 +1482,20 @@ function renderArticle(k){const a=ARTICLES[k];if(!a){location.hash='#info';retur
 route();renderAlertPill();renderMenu();
 initStore();
 (async()=>{try{const s=window.claude?await claude.use('sample'):null;if(s)sampleFn=s;}catch(e){}})();
+/* 지도 아래 목록 높이 조절 (손잡이를 끌거나, 탭하면 크게↔작게) */
+(function(){
+  const sh=document.querySelector('#v-map .sheet'),h=sh&&sh.querySelector('.handle');if(!h)return;
+  const vh=()=>window.innerHeight,clamp=v=>Math.max(96,Math.min(vh()*0.85,v));
+  let y0=0,h0=0,moved=false,raf=0;
+  const set=v=>{sh.style.setProperty('--sheet-h',clamp(v)+'px');};
+  const relayout=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));};
+  h.addEventListener('pointerdown',e=>{y0=e.clientY;h0=sh.getBoundingClientRect().height;moved=false;h.setPointerCapture(e.pointerId);e.preventDefault();});
+  h.addEventListener('pointermove',e=>{if(!h.hasPointerCapture(e.pointerId))return;const dy=y0-e.clientY;if(Math.abs(dy)>4)moved=true;set(h0+dy);relayout();});
+  const end=e=>{if(!h.hasPointerCapture(e.pointerId))return;h.releasePointerCapture(e.pointerId);
+    if(!moved){const cur=sh.getBoundingClientRect().height;set(cur>vh()*0.6?vh()*0.4:vh()*0.8);}
+    setTimeout(()=>window.dispatchEvent(new Event('resize')),60);};
+  h.addEventListener('pointerup',end);h.addEventListener('pointercancel',end);
+})();
 </script>
 </body>
 </html>
